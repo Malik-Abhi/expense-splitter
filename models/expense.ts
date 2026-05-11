@@ -6,12 +6,12 @@ const expenseSchema = new mongoose.Schema(
         description: { type: String, required: true },
         amount: { type: Number, required: true },
         paidBy: {
-            _id: mongoose.Schema.Types.ObjectId,
+            id: String,
             name: String,
         },
         splits: [
             {
-                personId: mongoose.Schema.Types.ObjectId,
+                personId: String,
                 name: String,
                 amount: Number,
             },

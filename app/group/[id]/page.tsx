@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import axios from 'axios';
 import { ExpenseForm } from '@/app/components/ExpenseForm';
 import { ExpenseList } from '@/app/components/ExpenseList';
 import { SettlementCalculator } from '@/app/components/SettlementCalculator';
+import { AppShell, Button, Heading, Panel, Paragraph } from '@/app/components/ui';
 
 interface Group {
     _id: string;
@@ -32,13 +33,7 @@ export default function GroupPage() {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'expenses' | 'settlements'>('expenses');
 
-    useEffect(() => {
-        if (groupId) {
-            fetchGroupAndExpenses();
-        }
-    }, [groupId]);
-
-    const fetchGroupAndExpenses = async () => {
+    const fetchGroupAndExpenses = useCallback(async () => {
         try {
             setLoading(true);
             const [groupRes, expensesRes] = await Promise.all([
@@ -52,22 +47,51 @@ export default function GroupPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [groupId]);
 
-    if (loading) return <p className="p-8">Loading...</p>;
-    if (!group) return <p className="p-8">Group not found</p>;
+    useEffect(() => {
+        if (groupId) {
+            fetchGroupAndExpenses();
+        }
+    }, [fetchGroupAndExpenses, groupId]);
+
+    if (loading) {
+        return (
+            <AppShell>
+                <div className="mx-auto max-w-5xl px-6 py-14">
+                    <Panel className="grid min-h-80 place-items-center p-10">
+                        <Paragraph>Loading group...</Paragraph>
+                    </Panel>
+                </div>
+            </AppShell>
+        );
+    }
+
+    if (!group) {
+        return (
+            <AppShell>
+                <div className="mx-auto max-w-5xl px-6 py-14">
+                    <Panel className="grid min-h-80 place-items-center p-10 text-center">
+                        <div>
+                            <Heading level={2}>Group not found</Heading>
+                            <Paragraph className="mt-2">This group may have been deleted.</Paragraph>
+                        </div>
+                    </Panel>
+                </div>
+            </AppShell>
+        );
+    }
 
     return (
-        <main className="min-h-screen bg-gray-50">
-            <div className="max-w-4xl mx-auto px-4 py-8">
-                {/* Header */}
+        <AppShell>
+            <div className="mx-auto max-w-6xl px-6 py-12 md:px-10">
                 <div className="mb-8">
-                    <h1 className="text-4xl font-bold text-gray-900">{group.name}</h1>
-                    <div className="flex flex-wrap gap-2 mt-4">
+                    <Heading>{group.name}</Heading>
+                    <div className="mt-5 flex flex-wrap gap-2">
                         {group.members.map((member) => (
                             <span
                                 key={member.id}
-                                className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                className="rounded-full border border-border bg-muted px-3 py-1 text-sm font-extrabold text-muted-foreground"
                             >
                                 {member.name}
                             </span>
@@ -75,32 +99,27 @@ export default function GroupPage() {
                     </div>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex gap-4 mb-8 border-b border-gray-200">
-                    <button
+                <div className="mb-8 inline-grid rounded-lg bg-accent p-1 sm:grid-cols-2">
+                    <Button
+                        type="button"
+                        variant={activeTab === 'expenses' ? 'primary' : 'ghost'}
                         onClick={() => setActiveTab('expenses')}
-                        className={`px-4 py-2 font-semibold ${activeTab === 'expenses'
-                                ? 'border-b-2 border-blue-600 text-blue-600'
-                                : 'text-gray-600'
-                            }`}
+                        className="h-11 min-w-36 shadow-none"
                     >
-                        📊 Expenses
-                    </button>
-                    <button
+                        Expenses
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={activeTab === 'settlements' ? 'primary' : 'ghost'}
                         onClick={() => setActiveTab('settlements')}
-                        className={`px-4 py-2 font-semibold ${activeTab === 'settlements'
-                                ? 'border-b-2 border-blue-600 text-blue-600'
-                                : 'text-gray-600'
-                            }`}
+                        className="h-11 min-w-36 shadow-none"
                     >
-                        💸 Settlements
-                    </button>
+                        Settlements
+                    </Button>
                 </div>
 
-                {/* Content */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left: Expense Form */}
-                    <div className="lg:col-span-1">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                    <div>
                         <ExpenseForm
                             groupId={groupId}
                             members={group.members}
@@ -118,6 +137,6 @@ export default function GroupPage() {
                     </div>
                 </div>
             </div>
-        </main>
+        </AppShell>
     );
 }

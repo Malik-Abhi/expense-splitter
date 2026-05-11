@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 
-interface User {
+export interface User {
     id: string;
     name: string;
 }
 
-interface Group {
+export interface Group {
     _id: string;
     name: string;
     description?: string;
@@ -13,7 +13,7 @@ interface Group {
     createdAt: string;
 }
 
-interface Expense {
+export interface Expense {
     _id: string;
     groupId: string;
     description: string;

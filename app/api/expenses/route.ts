@@ -1,5 +1,5 @@
 import { connectDB } from '@/lib/mongodb';
-import { Expense } from '@/models/Expense';
+import { Expense } from '@/models/expense';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
         const expenses = await Expense.find({ groupId }).sort({ createdAt: -1 });
         return NextResponse.json(expenses);
     } catch (error) {
+        console.error('Failed to fetch expenses:', error);
         return NextResponse.json({ error: 'Failed to fetch expenses' }, { status: 500 });
     }
 }
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
         await expense.save();
         return NextResponse.json(expense, { status: 201 });
     } catch (error) {
+        console.error('Failed to create expense:', error);
         return NextResponse.json({ error: 'Failed to create expense' }, { status: 500 });
     }
 }

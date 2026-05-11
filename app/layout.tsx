@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Split Bills Smartly - AI Expense Splitter',
+  title: 'Splitmint',
   description:
-    'Upload receipt photos. Claude AI extracts items & suggests fair splits. No more bill drama!',
+    'Split bills with groups, expenses, and simple settlements.',
 };
 
 export default function RootLayout({
@@ -14,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-gray-50 text-gray-900">{children}</body>
+      <body>{children}</body>
     </html>
   );
 }

@@ -3,6 +3,14 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { ReceiptUpload } from './ReceiptUpload';
+import { Button, Heading, Panel, TextField } from './ui';
+
+interface ReceiptData {
+    items: Array<{ name: string; price: number }>;
+    total: number;
+    storeName?: string;
+    category?: string;
+}
 
 interface ExpenseFormProps {
     groupId: string;
@@ -18,7 +26,7 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
     const [category, setCategory] = useState('Other');
     const [splits, setSplits] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(false);
-    const [receiptData, setReceiptData] = useState<any>(null);
+    const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
     // Initialize splits
     const initializeSplits = (total: number) => {
@@ -30,7 +38,7 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
         setSplits(newSplits);
     };
 
-    const handleReceiptParsed = (data: any) => {
+    const handleReceiptParsed = (data: ReceiptData) => {
         setReceiptData(data);
         setDescription(data.storeName || 'Receipt');
         setAmount(data.total.toString());
@@ -103,86 +111,73 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
     };
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-bold mb-4">Add Expense</h2>
+        <Panel className="p-6">
+            <Heading level={2} className="mb-5">Add expense</Heading>
 
-            {/* Method selector */}
-            <div className="flex gap-4 mb-6">
-                <button
+            <div className="mb-6 grid grid-cols-2 gap-1 rounded-lg bg-accent p-1">
+                <Button
+                    type="button"
                     onClick={() => setMethod('manual')}
-                    className={`px-4 py-2 rounded ${method === 'manual'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-200 text-gray-800'
-                        }`}
+                    variant={method === 'manual' ? 'primary' : 'ghost'}
+                    className="h-10 shadow-none"
                 >
-                    📝 Manual
-                </button>
-                <button
+                    Manual
+                </Button>
+                <Button
+                    type="button"
                     onClick={() => setMethod('receipt')}
-                    className={`px-4 py-2 rounded ${method === 'receipt'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-200 text-gray-800'
-                        }`}
+                    variant={method === 'receipt' ? 'primary' : 'ghost'}
+                    className="h-10 shadow-none"
                 >
-                    📸 Receipt
-                </button>
+                    Receipt
+                </Button>
             </div>
 
-            {/* Receipt upload */}
             {method === 'receipt' && (
                 <div className="mb-6">
                     <ReceiptUpload onReceiptParsed={handleReceiptParsed} isLoading={loading} />
                     {receiptData && (
-                        <div className="mt-4 p-4 bg-blue-50 rounded">
-                            <h3 className="font-bold text-sm mb-2">Receipt Items:</h3>
+                        <div className="mt-4 rounded-lg border border-border bg-muted p-4">
+                            <h3 className="mb-2 text-sm font-black text-foreground">Receipt items</h3>
                             <ul className="text-sm space-y-1">
-                                {receiptData.items.map((item: any, i: number) => (
+                                {receiptData.items.map((item, i) => (
                                     <li key={i}>
                                         {item.name}: ${item.price.toFixed(2)}
                                     </li>
                                 ))}
                             </ul>
-                            <p className="font-bold mt-2">Total: ${receiptData.total.toFixed(2)}</p>
+                            <p className="mt-2 font-extrabold">Total: ${receiptData.total.toFixed(2)}</p>
                         </div>
                     )}
                 </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Description */}
-                <div>
-                    <label className="block text-sm font-medium mb-1">Description</label>
-                    <input
-                        type="text"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        placeholder="e.g., Dinner, Groceries, Uber"
-                        className="w-full px-3 py-2 border border-gray-300 rounded"
-                        disabled={loading}
-                    />
-                </div>
+                <TextField
+                    label="Description"
+                    type="text"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Dinner, groceries, cab"
+                    disabled={loading}
+                />
 
-                {/* Amount */}
-                <div>
-                    <label className="block text-sm font-medium mb-1">Total Amount</label>
-                    <input
-                        type="number"
-                        value={amount}
-                        onChange={handleAmountChange}
-                        placeholder="0.00"
-                        step="0.01"
-                        className="w-full px-3 py-2 border border-gray-300 rounded"
-                        disabled={loading}
-                    />
-                </div>
+                <TextField
+                    label="Total amount"
+                    type="number"
+                    value={amount}
+                    onChange={handleAmountChange}
+                    placeholder="0.00"
+                    step="0.01"
+                    disabled={loading}
+                />
 
-                {/* Paid by */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">Paid By</label>
+                    <label className="mb-2 block text-sm font-extrabold text-foreground">Paid by</label>
                     <select
                         value={paidBy}
                         onChange={(e) => setPaidBy(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded"
+                        className="h-12 w-full rounded-lg border border-input bg-background/35 px-4 text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/35"
                         disabled={loading}
                     >
                         {members.map((m) => (
@@ -193,53 +188,53 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                     </select>
                 </div>
 
-                {/* Category */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">Category</label>
+                    <label className="mb-2 block text-sm font-extrabold text-foreground">Category</label>
                     <select
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded"
+                        className="h-12 w-full rounded-lg border border-input bg-background/35 px-4 text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/35"
                         disabled={loading}
                     >
-                        <option value="Food">🍕 Food</option>
-                        <option value="Transport">🚗 Transport</option>
-                        <option value="Entertainment">🎬 Entertainment</option>
-                        <option value="Accommodation">🏨 Accommodation</option>
-                        <option value="Other">📦 Other</option>
+                        <option value="Food">Food</option>
+                        <option value="Transport">Transport</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Accommodation">Accommodation</option>
+                        <option value="Other">Other</option>
                     </select>
                 </div>
 
-                {/* Splits */}
                 <div>
-                    <label className="block text-sm font-medium mb-2">Split Amounts</label>
+                    <label className="mb-2 block text-sm font-extrabold text-foreground">Split amounts</label>
                     <div className="space-y-2">
                         {members.map((member) => (
                             <div key={member.id} className="flex items-center gap-2">
-                                <label className="w-24 text-sm">{member.name}</label>
+                                <label className="w-24 truncate text-sm font-bold text-muted-foreground">
+                                    {member.name}
+                                </label>
                                 <input
                                     type="number"
                                     value={splits[member.id] || 0}
                                     onChange={(e) => handleSplitChange(member.id, e.target.value)}
                                     placeholder="0.00"
                                     step="0.01"
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded"
+                                    className="h-11 min-w-0 flex-1 rounded-lg border border-input bg-background/35 px-3 text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/35"
                                     disabled={loading}
                                 />
-                                <span className="text-sm text-gray-600">$</span>
+                                <span className="text-sm font-bold text-muted-foreground">$</span>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                <button
+                <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
+                    className="w-full disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                    {loading ? '⏳ Adding...' : '✅ Add Expense'}
-                </button>
+                    {loading ? 'Adding...' : 'Add expense'}
+                </Button>
             </form>
-        </div>
+        </Panel>
     );
 }

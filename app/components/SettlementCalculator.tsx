@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { Button, Heading, Panel, Paragraph } from './ui';
 
 interface ExpenseSplit {
     personId: string;
@@ -94,11 +95,11 @@ export function SettlementCalculator({
     };
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-bold mb-4">💸 Settlements</h2>
+        <Panel className="p-6">
+            <Heading level={2} className="mb-4">Settlements</Heading>
 
             {settlements.length === 0 ? (
-                <p className="text-gray-500">No settlements needed - everyone is balanced!</p>
+                <Paragraph>No settlements needed. Everyone is balanced.</Paragraph>
             ) : (
                 <div className="space-y-3">
                     {settlements.map((settlement, i) => {
@@ -108,35 +109,34 @@ export function SettlementCalculator({
                         return (
                             <div
                                 key={i}
-                                className={`p-4 border rounded-lg ${isSettled
-                                        ? 'bg-green-50 border-green-300'
-                                        : 'bg-yellow-50 border-yellow-300'
+                                className={`rounded-lg border p-4 ${isSettled
+                                        ? 'border-primary/60 bg-primary/10'
+                                        : 'border-border bg-background/25'
                                     }`}
                             >
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between gap-4">
                                     <div>
-                                        <p className="font-semibold">
+                                        <p className="font-extrabold text-foreground">
                                             {getMemberName(settlement.from)} → {getMemberName(settlement.to)}
                                         </p>
-                                        <p className="text-lg font-bold text-green-600">
+                                        <p className="text-lg font-black text-primary">
                                             ${settlement.amount.toFixed(2)}
                                         </p>
                                     </div>
-                                    <button
+                                    <Button
+                                        type="button"
                                         onClick={() => toggleSettled(id)}
-                                        className={`px-4 py-2 rounded font-bold ${isSettled
-                                                ? 'bg-green-600 text-white'
-                                                : 'bg-gray-200 text-gray-800'
-                                            }`}
+                                        variant={isSettled ? 'primary' : 'secondary'}
+                                        className="h-10 shrink-0"
                                     >
-                                        {isSettled ? '✅ Settled' : '⬜ Mark Paid'}
-                                    </button>
+                                        {isSettled ? 'Settled' : 'Mark paid'}
+                                    </Button>
                                 </div>
                             </div>
                         );
                     })}
                 </div>
             )}
-        </div>
+        </Panel>
     );
 }

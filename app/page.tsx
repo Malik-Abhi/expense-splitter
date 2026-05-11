@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { GroupCard } from './components/GroupCard';
-import { useAppStore } from '@/store/appStore';
+import { AppShell, Button, Heading, Logo, Panel, Paragraph, TextField } from './components/ui';
 
 interface Group {
   _id: string;
@@ -14,20 +13,24 @@ interface Group {
   createdAt: string;
 }
 
+type AuthMode = 'sign-in' | 'create-account';
+
+const AUTH_STORAGE_KEY = 'splitmint-account-email';
+
 export default function Home() {
   const [groups, setGroups] = useState<Group[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupMembers, setNewGroupMembers] = useState('');
-  const router = useRouter();
+  const [authMode, setAuthMode] = useState<AuthMode>('sign-in');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [accountEmail, setAccountEmail] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchGroups();
-  }, []);
-
-  const fetchGroups = async () => {
+  const fetchGroups = useCallback(async () => {
     try {
+      setLoading(true);
       const response = await axios.get('/api/groups');
       setGroups(response.data);
     } catch (error) {
@@ -35,10 +38,42 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    const storedEmail = window.localStorage.getItem(AUTH_STORAGE_KEY);
+    if (storedEmail) {
+      setAccountEmail(storedEmail);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (accountEmail) {
+      fetchGroups();
+    }
+  }, [accountEmail, fetchGroups]);
+
+  const handleAuth = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!email || !password) {
+      alert('Please enter your email and password');
+      return;
+    }
+
+    window.localStorage.setItem(AUTH_STORAGE_KEY, email);
+    setAccountEmail(email);
   };
 
-  const handleCreateGroup = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSignOut = () => {
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+    setAccountEmail(null);
+    setGroups([]);
+    setShowForm(false);
+  };
+
+  const handleCreateGroup = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
     if (!newGroupName || !newGroupMembers) {
       alert('Please fill all fields');
@@ -46,18 +81,18 @@ export default function Home() {
     }
 
     try {
-      const members = newGroupMembers.split(',').map((name, i) => ({
-        id: `member-${i}`,
+      const members = newGroupMembers.split(',').map((name, index) => ({
+        id: `member-${index}`,
         name: name.trim(),
       }));
 
       const response = await axios.post('/api/groups', {
         name: newGroupName,
         members,
-        createdBy: 'user-1',
+        createdBy: accountEmail || 'user-1',
       });
 
-      setGroups([...groups, response.data]);
+      setGroups((currentGroups) => [response.data, ...currentGroups]);
       setNewGroupName('');
       setNewGroupMembers('');
       setShowForm(false);
@@ -67,80 +102,131 @@ export default function Home() {
     }
   };
 
-  return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 py-12">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">💰 Split Bills Smartly</h1>
-          <p className="text-lg text-gray-600">
-            Upload receipts. AI splits fairly. Everyone pays their share. Done.
-          </p>
-        </div>
-
-        {/* Create Group Button */}
-        <div className="mb-8 text-center">
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700"
-          >
-            ➕ Create New Group
-          </button>
-        </div>
-
-        {/* Create Group Form */}
-        {showForm && (
-          <div className="max-w-md mx-auto mb-12 bg-white p-6 rounded-lg shadow">
-            <form onSubmit={handleCreateGroup} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Group Name</label>
-                <input
-                  type="text"
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  placeholder="e.g., Vegas Trip"
-                  className="w-full px-3 py-2 border border-gray-300 rounded"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Members (comma-separated)
-                </label>
-                <input
-                  type="text"
-                  value={newGroupMembers}
-                  onChange={(e) => setNewGroupMembers(e.target.value)}
-                  placeholder="e.g., Alice, Bob, Carol"
-                  className="w-full px-3 py-2 border border-gray-300 rounded"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-green-600 text-white font-bold py-2 rounded hover:bg-green-700"
-              >
-                Create Group
-              </button>
-            </form>
+  if (!accountEmail) {
+    return (
+      <main className="grid min-h-screen place-items-center px-6 py-12">
+        <div className="w-full max-w-xl">
+          <div className="mb-12 flex justify-center">
+            <Logo centered />
           </div>
+
+          <Panel className="p-8">
+            <div className="mb-9 grid rounded-lg bg-accent p-1">
+              <div className="grid grid-cols-2 gap-1">
+                <button
+                  type="button"
+                  onClick={() => setAuthMode('sign-in')}
+                  className={`h-11 rounded-md text-sm font-extrabold transition ${authMode === 'sign-in'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                >
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthMode('create-account')}
+                  className={`h-11 rounded-md text-sm font-extrabold transition ${authMode === 'create-account'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                >
+                  Create account
+                </button>
+              </div>
+            </div>
+
+            <form onSubmit={handleAuth} className="space-y-7">
+              <TextField
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                autoComplete="email"
+              />
+              <TextField
+                label="Password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                autoComplete={authMode === 'sign-in' ? 'current-password' : 'new-password'}
+              />
+              <Button type="submit" className="w-full">
+                {authMode === 'sign-in' ? 'Sign in' : 'Create account'}
+              </Button>
+            </form>
+          </Panel>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <AppShell email={accountEmail} onSignOut={handleSignOut}>
+      <div className="mx-auto max-w-7xl px-6 py-14 md:px-10">
+        <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <Heading>Your groups</Heading>
+            <Paragraph className="mt-2 text-xl">Split bills with the people you spend with.</Paragraph>
+          </div>
+          <Button type="button" onClick={() => setShowForm((current) => !current)}>
+            <span className="text-2xl leading-none">+</span>
+            New group
+          </Button>
+        </div>
+
+        {showForm && (
+          <Panel className="mb-8 p-6">
+            <form onSubmit={handleCreateGroup} className="grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+              <TextField
+                label="Group name"
+                type="text"
+                value={newGroupName}
+                onChange={(event) => setNewGroupName(event.target.value)}
+                placeholder="Trip to Manali"
+              />
+              <TextField
+                label="Members"
+                type="text"
+                value={newGroupMembers}
+                onChange={(event) => setNewGroupMembers(event.target.value)}
+                placeholder="Aryan, Rupal, Gunjan"
+              />
+              <Button type="submit" className="w-full md:w-auto">
+                Create
+              </Button>
+            </form>
+          </Panel>
         )}
 
-        {/* Groups Grid */}
         {loading ? (
-          <p className="text-center text-gray-600">Loading...</p>
+          <Panel className="grid min-h-80 place-items-center border-dashed p-10">
+            <Paragraph>Loading groups...</Paragraph>
+          </Panel>
         ) : groups.length === 0 ? (
-          <div className="text-center">
-            <p className="text-gray-600 mb-4">No groups yet. Create one to get started!</p>
-          </div>
+          <Panel className="grid min-h-96 place-items-center border-dashed p-10 text-center">
+            <div className="mx-auto max-w-xl">
+              <div className="mx-auto mb-7 grid h-20 w-20 place-items-center rounded-xl bg-accent text-primary">
+                <span className="text-4xl">♧</span>
+              </div>
+              <Heading level={2}>No groups yet</Heading>
+              <Paragraph className="mt-3 text-xl">
+                Start one for your roommates, your trip, your dinner club.
+              </Paragraph>
+              <Button type="button" onClick={() => setShowForm(true)} className="mt-8">
+                <span className="text-2xl leading-none">+</span>
+                Create your first group
+              </Button>
+            </div>
+          </Panel>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {groups.map((group) => (
               <GroupCard key={group._id} group={group} />
             ))}
           </div>
         )}
       </div>
-    </main>
+    </AppShell>
   );
 }

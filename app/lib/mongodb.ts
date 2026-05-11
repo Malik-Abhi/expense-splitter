@@ -10,6 +10,8 @@ if (!MONGODB_URI) {
     throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
 }
 
+const mongoUri = MONGODB_URI;
+
 let cached = global.mongoose;
 
 if (!cached) {
@@ -27,7 +29,7 @@ export async function connectDB() {
         };
 
         cached.promise = mongoose
-            .connect(MONGODB_URI, opts)
+            .connect(mongoUri, opts)
             .then((mongoose) => {
                 console.log('MongoDB connected');
                 return mongoose;

@@ -6,12 +6,12 @@ const groupSchema = new mongoose.Schema(
         description: { type: String },
         members: [
             {
-                _id: mongoose.Schema.Types.ObjectId,
+                id: String,
                 name: String,
                 email: String,
             },
         ],
-        createdBy: { type: mongoose.Schema.Types.ObjectId, required: true },
+        createdBy: { type: String, required: true },
         createdAt: { type: Date, default: Date.now },
     },
     { timestamps: true }
