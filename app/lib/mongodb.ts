@@ -2,8 +2,13 @@ import mongoose from 'mongoose';
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
+interface MongooseCache {
+    conn: typeof mongoose | null;
+    promise: Promise<typeof mongoose> | null;
+}
+
 declare global {
-    var mongoose: any;
+    var mongoose: MongooseCache | undefined;
 }
 
 if (!MONGODB_URI) {
@@ -19,6 +24,10 @@ if (!cached) {
 }
 
 export async function connectDB() {
+    if (!cached) {
+        throw new Error('MongoDB cache was not initialized');
+    }
+
     if (cached.conn) {
         return cached.conn;
     }

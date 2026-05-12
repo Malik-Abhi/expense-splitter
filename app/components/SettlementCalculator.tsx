@@ -52,10 +52,10 @@ export function SettlementCalculator({
         // Convert to settlements
         const settlements: Settlement[] = [];
         const debtors = Object.entries(balances)
-            .filter(([_, b]) => b < 0)
+            .filter((entry) => entry[1] < 0)
             .map(([id, b]) => ({ id, amount: Math.abs(b) }));
         const creditors = Object.entries(balances)
-            .filter(([_, b]) => b > 0)
+            .filter((entry) => entry[1] > 0)
             .map(([id, b]) => ({ id, amount: b }));
 
         // Greedy matching
@@ -119,7 +119,7 @@ export function SettlementCalculator({
                                         <p className="font-extrabold text-foreground">
                                             {getMemberName(settlement.from)} → {getMemberName(settlement.to)}
                                         </p>
-                                        <p className="text-lg font-black text-primary">
+                                        <p className="font-mono text-lg font-black text-primary">
                                             ${settlement.amount.toFixed(2)}
                                         </p>
                                     </div>

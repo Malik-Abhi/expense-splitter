@@ -17,4 +17,8 @@ const groupSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+if (mongoose.models.Group && mongoose.models.Group.schema.path('createdBy')?.instance !== 'String') {
+    mongoose.deleteModel('Group');
+}
+
 export const Group = mongoose.models.Group || mongoose.model('Group', groupSchema);

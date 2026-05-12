@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import axios from 'axios';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faKeyboard, faReceipt, faScaleBalanced } from '@fortawesome/free-solid-svg-icons';
 import { ReceiptUpload } from './ReceiptUpload';
 import { Button, Heading, Panel, TextField } from './ui';
 
@@ -19,6 +21,16 @@ interface ExpenseFormProps {
 }
 
 export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormProps) {
+    const [categories] = useState<string[]>(() => {
+        if (typeof window === 'undefined') {
+            return ['Food', 'Transport', 'Stay', 'Groceries', 'Entertainment', 'Utilities', 'Other'];
+        }
+
+        const storedCategories = window.localStorage.getItem('splitmint-categories');
+        return storedCategories
+            ? (JSON.parse(storedCategories) as string[])
+            : ['Food', 'Transport', 'Stay', 'Groceries', 'Entertainment', 'Utilities', 'Other'];
+    });
     const [method, setMethod] = useState<'receipt' | 'manual'>('manual');
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
@@ -28,8 +40,11 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
     const [loading, setLoading] = useState(false);
     const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
-    // Initialize splits
     const initializeSplits = (total: number) => {
+        if (members.length === 0) {
+            return;
+        }
+
         const equal = total / members.length;
         const newSplits: Record<string, number> = {};
         members.forEach((m) => {
@@ -121,6 +136,7 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                     variant={method === 'manual' ? 'primary' : 'ghost'}
                     className="h-10 shadow-none"
                 >
+                    <FontAwesomeIcon icon={faKeyboard} />
                     Manual
                 </Button>
                 <Button
@@ -129,6 +145,7 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                     variant={method === 'receipt' ? 'primary' : 'ghost'}
                     className="h-10 shadow-none"
                 >
+                    <FontAwesomeIcon icon={faReceipt} />
                     Receipt
                 </Button>
             </div>
@@ -196,16 +213,19 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                         className="h-12 w-full rounded-lg border border-input bg-background/35 px-4 text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/35"
                         disabled={loading}
                     >
-                        <option value="Food">Food</option>
-                        <option value="Transport">Transport</option>
-                        <option value="Entertainment">Entertainment</option>
-                        <option value="Accommodation">Accommodation</option>
-                        <option value="Other">Other</option>
+                        {categories.map((item) => (
+                            <option key={item} value={item}>
+                                {item}
+                            </option>
+                        ))}
                     </select>
                 </div>
 
                 <div>
-                    <label className="mb-2 block text-sm font-extrabold text-foreground">Split amounts</label>
+                    <label className="mb-2 flex items-center gap-2 text-sm font-extrabold text-foreground">
+                        <FontAwesomeIcon icon={faScaleBalanced} />
+                        Split amounts
+                    </label>
                     <div className="space-y-2">
                         {members.map((member) => (
                             <div key={member.id} className="flex items-center gap-2">

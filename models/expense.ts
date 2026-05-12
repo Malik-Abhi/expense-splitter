@@ -27,4 +27,8 @@ const expenseSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+if (mongoose.models.Expense && mongoose.models.Expense.schema.path('paidBy.id')?.instance !== 'String') {
+    mongoose.deleteModel('Expense');
+}
+
 export const Expense = mongoose.models.Expense || mongoose.model('Expense', expenseSchema);

@@ -14,7 +14,7 @@ export async function GET(
             return NextResponse.json({ error: 'Group not found' }, { status: 404 });
         }
         return NextResponse.json(group);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed to fetch group' }, { status: 500 });
     }
 }
@@ -29,7 +29,7 @@ export async function PUT(
         const body = await req.json();
         const group = await Group.findByIdAndUpdate(id, body, { new: true });
         return NextResponse.json(group);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed to update group' }, { status: 500 });
     }
 }
@@ -43,7 +43,7 @@ export async function DELETE(
         await connectDB();
         await Group.findByIdAndDelete(id);
         return NextResponse.json({ success: true });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: 'Failed to delete group' }, { status: 500 });
     }
 }

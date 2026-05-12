@@ -52,7 +52,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
                                 </div>
                             </div>
                             <div className="text-right">
-                                <p className="text-lg font-black text-primary">${expense.amount.toFixed(2)}</p>
+                                <p className="font-mono text-lg font-black text-primary">${expense.amount.toFixed(2)}</p>
                                 <p className="text-xs font-bold text-muted-foreground">
                                     {new Date(expense.createdAt).toLocaleDateString()}
                                 </p>
