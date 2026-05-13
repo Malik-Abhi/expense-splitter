@@ -1,4 +1,5 @@
 import { connectDB } from '@/lib/mongodb';
+import { Activity } from '@/models/activity';
 import { Expense } from '@/models/expense';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -28,6 +29,14 @@ export async function PUT(
         await connectDB();
         const body = await req.json();
         const expense = await Expense.findByIdAndUpdate(id, body, { new: true });
+        if (body.status === 'settled') {
+            await Activity.create({
+                groupId: expense.groupId,
+                type: 'settlement_paid',
+                amount: expense.amount,
+                message: `${expense.description} was marked settled`,
+            });
+        }
         return NextResponse.json(expense);
     } catch {
         return NextResponse.json({ error: 'Failed to update expense' }, { status: 500 });

@@ -1,6 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheckCircle, faClock, faMoneyBillTransfer } from '@fortawesome/free-solid-svg-icons';
 import { Button, Heading, Panel, Paragraph } from './ui';
 
 interface ExpenseSplit {
@@ -96,7 +98,12 @@ export function SettlementCalculator({
 
     return (
         <Panel className="p-6">
-            <Heading level={2} className="mb-4">Settlements</Heading>
+            <div className="mb-4 flex items-center justify-between">
+                <Heading level={2}>Settlement plan</Heading>
+                <span className="rounded-full bg-accent px-3 py-1 text-sm font-semibold">
+                    {settled.size}/{settlements.length} paid
+                </span>
+            </div>
 
             {settlements.length === 0 ? (
                 <Paragraph>No settlements needed. Everyone is balanced.</Paragraph>
@@ -117,6 +124,7 @@ export function SettlementCalculator({
                                 <div className="flex items-center justify-between gap-4">
                                     <div>
                                         <p className="font-extrabold text-foreground">
+                                            <FontAwesomeIcon icon={faMoneyBillTransfer} className="mr-2 text-primary" />
                                             {getMemberName(settlement.from)} → {getMemberName(settlement.to)}
                                         </p>
                                         <p className="font-mono text-lg font-black text-primary">
@@ -129,6 +137,7 @@ export function SettlementCalculator({
                                         variant={isSettled ? 'primary' : 'secondary'}
                                         className="h-10 shrink-0"
                                     >
+                                        <FontAwesomeIcon icon={isSettled ? faCheckCircle : faClock} />
                                         {isSettled ? 'Settled' : 'Mark paid'}
                                     </Button>
                                 </div>

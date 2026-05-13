@@ -1,12 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChartLine, faReceipt, faTrash, faUserPlus, faUsers } from '@fortawesome/free-solid-svg-icons';
 import { ExpenseForm } from '@/app/components/ExpenseForm';
 import { ExpenseList } from '@/app/components/ExpenseList';
+import { GroupAnalytics } from '@/app/components/GroupAnalytics';
+import { ActivityFeed } from '@/app/components/ActivityFeed';
 import { SettlementCalculator } from '@/app/components/SettlementCalculator';
 import { AppShell, Button, Heading, Panel, Paragraph, TextField } from '@/app/components/ui';
 
@@ -27,13 +29,22 @@ interface Expense {
     createdAt: string;
 }
 
+interface Activity {
+    _id: string;
+    type: string;
+    message: string;
+    createdAt: string;
+}
+
 export default function GroupPage() {
     const params = useParams();
+    const router = useRouter();
     const groupId = params.id as string;
     const [group, setGroup] = useState<Group | null>(null);
     const [expenses, setExpenses] = useState<Expense[]>([]);
+    const [activities, setActivities] = useState<Activity[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'expenses' | 'settlements'>('expenses');
+    const [activeTab, setActiveTab] = useState<'expenses' | 'settlements' | 'activity'>('expenses');
     const [memberName, setMemberName] = useState('');
     const [memberEmail, setMemberEmail] = useState('');
 
@@ -42,12 +53,14 @@ export default function GroupPage() {
     const fetchGroupAndExpenses = useCallback(async () => {
         try {
             setLoading(true);
-            const [groupRes, expensesRes] = await Promise.all([
+            const [groupRes, expensesRes, activityRes] = await Promise.all([
                 axios.get(`/api/groups/${groupId}`),
                 axios.get(`/api/expenses?groupId=${groupId}`),
+                axios.get(`/api/activities?groupId=${groupId}`),
             ]);
             setGroup(groupRes.data);
             setExpenses(expensesRes.data);
+            setActivities(activityRes.data);
         } catch (error) {
             console.error('Failed to fetch group:', error);
         } finally {
@@ -95,6 +108,20 @@ export default function GroupPage() {
         await updateMembers(group.members.filter((member) => member.id !== memberId));
     };
 
+    const handleDeleteGroup = async () => {
+        if (!group) {
+            return;
+        }
+
+        const confirmed = window.confirm(`Delete ${group.name}? This also removes its expenses and activity.`);
+        if (!confirmed) {
+            return;
+        }
+
+        await axios.delete(`/api/groups/${groupId}`);
+        router.push('/');
+    };
+
     if (loading) {
         return (
             <AppShell>
@@ -126,8 +153,16 @@ export default function GroupPage() {
         <AppShell>
             <div className="mx-auto max-w-6xl px-6 py-12 md:px-10">
                 <div className="mb-8">
-                    <Heading>{group.name}</Heading>
-                    {group.description && <Paragraph className="mt-2">{group.description}</Paragraph>}
+                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                        <div>
+                            <Heading>{group.name}</Heading>
+                            {group.description && <Paragraph className="mt-2">{group.description}</Paragraph>}
+                        </div>
+                        <Button type="button" variant="secondary" onClick={handleDeleteGroup} className="border-destructive/40 text-destructive hover:bg-destructive/10">
+                            <FontAwesomeIcon icon={faTrash} />
+                            Delete group
+                        </Button>
+                    </div>
                     <div className="mt-5 flex flex-wrap gap-2">
                         {group.members.map((member) => (
                             <span
@@ -140,7 +175,9 @@ export default function GroupPage() {
                     </div>
                 </div>
 
-                <div className="mb-8 inline-grid rounded-lg bg-accent p-1 sm:grid-cols-2">
+                <GroupAnalytics expenses={expenses} members={group.members} />
+
+                <div className="my-8 inline-grid rounded-lg bg-accent p-1 sm:grid-cols-3">
                     <Button
                         type="button"
                         variant={activeTab === 'expenses' ? 'primary' : 'ghost'}
@@ -158,6 +195,15 @@ export default function GroupPage() {
                     >
                         <FontAwesomeIcon icon={faChartLine} />
                         Settlements
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={activeTab === 'activity' ? 'primary' : 'ghost'}
+                        onClick={() => setActiveTab('activity')}
+                        className="h-11 min-w-36 shadow-none"
+                    >
+                        <FontAwesomeIcon icon={faUsers} />
+                        Activity
                     </Button>
                 </div>
 
@@ -206,8 +252,10 @@ export default function GroupPage() {
                     <div className="lg:col-span-2">
                         {activeTab === 'expenses' ? (
                             <ExpenseList expenses={expenses} />
-                        ) : (
+                        ) : activeTab === 'settlements' ? (
                             <SettlementCalculator expenses={expenses} members={group.members} />
+                        ) : (
+                            <ActivityFeed activities={activities} />
                         )}
                     </div>
                 </div>

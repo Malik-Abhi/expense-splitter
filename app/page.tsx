@@ -39,6 +39,15 @@ interface Expense {
   splits: Array<{ personId: string; name: string; amount: number }>;
 }
 
+interface UserProfile {
+  id?: string;
+  email: string;
+  name?: string;
+  currency?: string;
+  members: Member[];
+  categories: string[];
+}
+
 type AuthMode = 'sign-in' | 'create-account';
 type HomeView = 'groups' | 'account';
 
@@ -88,15 +97,34 @@ export default function Home() {
 
     return window.localStorage.getItem(AUTH_STORAGE_KEY);
   });
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const persistContacts = (nextContacts: Member[]) => {
     setContacts(nextContacts);
     window.localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(nextContacts));
+    if (accountEmail) {
+      void axios.put('/api/profile', {
+        email: accountEmail,
+        name: profile?.name || accountEmail.split('@')[0],
+        currency: profile?.currency || 'USD',
+        members: nextContacts,
+        categories,
+      });
+    }
   };
 
   const persistCategories = (nextCategories: string[]) => {
     setCategories(nextCategories);
     window.localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(nextCategories));
+    if (accountEmail) {
+      void axios.put('/api/profile', {
+        email: accountEmail,
+        name: profile?.name || accountEmail.split('@')[0],
+        currency: profile?.currency || 'USD',
+        members: contacts,
+        categories: nextCategories,
+      });
+    }
   };
 
   const fetchGroups = useCallback(async () => {
@@ -113,6 +141,21 @@ export default function Home() {
 
   useEffect(() => {
     if (accountEmail) {
+      const fetchProfile = async () => {
+        try {
+          const response = await axios.get(`/api/profile?email=${encodeURIComponent(accountEmail)}`);
+          setProfile(response.data);
+          const nextContacts = response.data.members || [];
+          const nextCategories = response.data.categories?.length ? response.data.categories : DEFAULT_CATEGORIES;
+          setContacts(nextContacts);
+          setCategories(nextCategories);
+          window.localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(nextContacts));
+          window.localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(nextCategories));
+        } catch (error) {
+          console.error('Failed to load profile:', error);
+        }
+      };
+      void fetchProfile();
       void Promise.resolve().then(fetchGroups);
     }
   }, [accountEmail, fetchGroups]);
@@ -226,7 +269,7 @@ export default function Home() {
     setSelectedMembers((current) => [...current, contact]);
   };
 
-  const handleAuth = (event: FormEvent<HTMLFormElement>) => {
+  const handleAuth = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!email || !password) {
@@ -234,13 +277,26 @@ export default function Home() {
       return;
     }
 
-    window.localStorage.setItem(AUTH_STORAGE_KEY, email);
-    setAccountEmail(email);
+    try {
+      const response = await axios.post('/api/auth', { email, password, mode: authMode });
+      const nextProfile = response.data.user as UserProfile;
+      window.localStorage.setItem(AUTH_STORAGE_KEY, nextProfile.email);
+      window.localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(nextProfile.members || []));
+      window.localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(nextProfile.categories || DEFAULT_CATEGORIES));
+      setProfile(nextProfile);
+      setContacts(nextProfile.members || []);
+      setCategories(nextProfile.categories || DEFAULT_CATEGORIES);
+      setAccountEmail(nextProfile.email);
+    } catch (error) {
+      alert('Could not sign in. Check your email/password or create an account.');
+      console.error(error);
+    }
   };
 
   const handleSignOut = () => {
     window.localStorage.removeItem(AUTH_STORAGE_KEY);
     setAccountEmail(null);
+    setProfile(null);
     setGroups([]);
     setShowForm(false);
   };
@@ -268,6 +324,27 @@ export default function Home() {
       setShowForm(false);
     } catch (error) {
       alert('Failed to create group');
+      console.error(error);
+    }
+  };
+
+  const handleDeleteGroup = async (groupId: string) => {
+    const group = groups.find((item) => item._id === groupId);
+    const confirmed = window.confirm(`Delete ${group?.name || 'this group'}? This also removes its expenses and activity.`);
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await axios.delete(`/api/groups/${groupId}`);
+      setGroups((currentGroups) => currentGroups.filter((item) => item._id !== groupId));
+      setExpensesByGroup((current) => {
+        const next = { ...current };
+        delete next[groupId];
+        return next;
+      });
+    } catch (error) {
+      alert('Failed to delete group');
       console.error(error);
     }
   };
@@ -471,7 +548,7 @@ export default function Home() {
             ) : (
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
                 {groups.map((group) => (
-                  <GroupCard key={group._id} group={group} />
+                  <GroupCard key={group._id} group={group} onDelete={handleDeleteGroup} />
                 ))}
               </div>
             )}
@@ -586,6 +663,30 @@ export default function Home() {
             </Panel>
           </div>
         )}
+        <div className="fixed inset-x-4 bottom-4 z-20 grid grid-cols-2 gap-2 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-lg md:hidden">
+          <button
+            type="button"
+            onClick={() => setActiveView('groups')}
+            className={`h-11 rounded-lg text-sm font-semibold ${activeView === 'groups'
+              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+              : 'text-sidebar-foreground'
+              }`}
+          >
+            <FontAwesomeIcon icon={faLayerGroup} className="mr-2" />
+            Groups
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveView('account')}
+            className={`h-11 rounded-lg text-sm font-semibold ${activeView === 'account'
+              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+              : 'text-sidebar-foreground'
+              }`}
+          >
+            <FontAwesomeIcon icon={faWallet} className="mr-2" />
+            Account
+          </button>
+        </div>
       </div>
     </AppShell>
   );

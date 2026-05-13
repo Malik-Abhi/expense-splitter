@@ -1,4 +1,5 @@
 import { connectDB } from '@/lib/mongodb';
+import { Activity } from '@/models/activity';
 import { Group } from '@/models/group';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -26,6 +27,12 @@ export async function POST(req: NextRequest) {
         });
 
         await group.save();
+        await Activity.create({
+            groupId: group._id,
+            type: 'group_created',
+            actor: body.createdBy,
+            message: `${body.createdBy || 'Someone'} created ${group.name}`,
+        });
         return NextResponse.json(group, { status: 201 });
     } catch (error) {
         console.error('Failed to create group:', error);

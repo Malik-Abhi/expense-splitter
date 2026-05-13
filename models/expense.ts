@@ -14,13 +14,18 @@ const expenseSchema = new mongoose.Schema(
                 personId: String,
                 name: String,
                 amount: Number,
+                paid: { type: Boolean, default: false },
+                paidAt: Date,
             },
         ],
+        splitMode: { type: String, default: 'equal' },
+        status: { type: String, default: 'open' },
         category: { type: String, default: 'Other' }, // Food, Transport, etc.
         receiptData: {
             items: [{ name: String, price: Number }],
             storeName: String,
             imageUrl: String,
+            reviewed: { type: Boolean, default: false },
         },
         createdAt: { type: Date, default: Date.now },
     },

@@ -132,14 +132,17 @@ interface AppShellProps {
 }
 
 export function AppShell({ children, email, onSignOut }: AppShellProps) {
-    const [isDark, setIsDark] = useState(false);
+    const [isDark, setIsDark] = useState(() => {
+        if (typeof window === 'undefined') {
+            return false;
+        }
+
+        return window.localStorage.getItem('splitmint-theme') === 'dark';
+    });
 
     useEffect(() => {
-        const storedTheme = window.localStorage.getItem('splitmint-theme');
-        const shouldUseDark = storedTheme === 'dark';
-        document.documentElement.classList.toggle('dark', shouldUseDark);
-        setIsDark(shouldUseDark);
-    }, []);
+        document.documentElement.classList.toggle('dark', isDark);
+    }, [isDark]);
 
     const toggleTheme = () => {
         const nextIsDark = !isDark;

@@ -20,6 +20,8 @@ interface ExpenseFormProps {
     onExpenseAdded: () => void;
 }
 
+type SplitMode = 'equal' | 'exact' | 'percent' | 'shares';
+
 export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormProps) {
     const [categories] = useState<string[]>(() => {
         if (typeof window === 'undefined') {
@@ -36,21 +38,47 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
     const [amount, setAmount] = useState('');
     const [paidBy, setPaidBy] = useState(members[0]?.id || '');
     const [category, setCategory] = useState('Other');
+    const [splitMode, setSplitMode] = useState<SplitMode>('equal');
     const [splits, setSplits] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(false);
     const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
-    const initializeSplits = (total: number) => {
+    const calculateSplits = (total: number, mode: SplitMode, values: Record<string, number>) => {
         if (members.length === 0) {
-            return;
+            return {};
         }
 
-        const equal = total / members.length;
         const newSplits: Record<string, number> = {};
-        members.forEach((m) => {
-            newSplits[m.id] = Math.round(equal * 100) / 100;
-        });
-        setSplits(newSplits);
+
+        if (mode === 'equal') {
+            const equal = total / members.length;
+            members.forEach((m) => {
+                newSplits[m.id] = Math.round(equal * 100) / 100;
+            });
+            return newSplits;
+        }
+
+        if (mode === 'percent') {
+            members.forEach((m) => {
+                newSplits[m.id] = Math.round(total * ((values[m.id] || 0) / 100) * 100) / 100;
+            });
+            return newSplits;
+        }
+
+        if (mode === 'shares') {
+            const totalShares = members.reduce((sum, m) => sum + (values[m.id] || 0), 0) || members.length;
+            members.forEach((m) => {
+                const memberShares = values[m.id] || 1;
+                newSplits[m.id] = Math.round((total * memberShares / totalShares) * 100) / 100;
+            });
+            return newSplits;
+        }
+
+        return values;
+    };
+
+    const initializeSplits = (total: number, mode = splitMode) => {
+        setSplits(calculateSplits(total, mode, splits));
     };
 
     const handleReceiptParsed = (data: ReceiptData) => {
@@ -76,6 +104,31 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
         }));
     };
 
+    const handleSplitModeChange = (mode: SplitMode) => {
+        setSplitMode(mode);
+        const total = parseFloat(amount) || 0;
+        if (mode === 'equal') {
+            setSplits(calculateSplits(total, mode, splits));
+        } else if (mode === 'shares') {
+            const shares = Object.fromEntries(members.map((member) => [member.id, splits[member.id] || 1]));
+            setSplits(shares);
+        } else {
+            setSplits({});
+        }
+    };
+
+    const displaySplitAmount = (memberId: string) => {
+        const total = parseFloat(amount) || 0;
+        if (splitMode === 'percent') {
+            return Math.round(total * ((splits[memberId] || 0) / 100) * 100) / 100;
+        }
+        if (splitMode === 'shares') {
+            const calculated = calculateSplits(total, splitMode, splits);
+            return calculated[memberId] || 0;
+        }
+        return splits[memberId] || 0;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -88,12 +141,12 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
             setLoading(true);
 
             const expenseSplits = members
-                .filter((m) => splits[m.id] && splits[m.id] > 0)
                 .map((m) => ({
                     personId: m.id,
                     name: m.name,
-                    amount: splits[m.id],
-                }));
+                    amount: displaySplitAmount(m.id),
+                }))
+                .filter((split) => split.amount > 0)
 
             const expense = {
                 groupId,
@@ -104,8 +157,9 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                     name: members.find((m) => m.id === paidBy)?.name,
                 },
                 splits: expenseSplits,
+                splitMode,
                 category,
-                receiptData: receiptData || undefined,
+                receiptData: receiptData ? { ...receiptData, reviewed: true } : undefined,
             };
 
             await axios.post('/api/expenses', expense);
@@ -155,15 +209,36 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                     <ReceiptUpload onReceiptParsed={handleReceiptParsed} isLoading={loading} />
                     {receiptData && (
                         <div className="mt-4 rounded-lg border border-border bg-muted p-4">
-                            <h3 className="mb-2 text-sm font-black text-foreground">Receipt items</h3>
-                            <ul className="text-sm space-y-1">
+                            <h3 className="mb-3 text-sm font-black text-foreground">AI receipt review</h3>
+                            <div className="space-y-2">
                                 {receiptData.items.map((item, i) => (
-                                    <li key={i}>
-                                        {item.name}: ${item.price.toFixed(2)}
-                                    </li>
+                                    <div key={`${item.name}-${i}`} className="grid grid-cols-[1fr_6rem] gap-2">
+                                        <input
+                                            value={item.name}
+                                            onChange={(event) => {
+                                                const nextItems = [...receiptData.items];
+                                                nextItems[i] = { ...item, name: event.target.value };
+                                                setReceiptData({ ...receiptData, items: nextItems });
+                                            }}
+                                            className="h-9 rounded-md border border-input bg-background/40 px-2 text-sm"
+                                        />
+                                        <input
+                                            type="number"
+                                            value={item.price}
+                                            onChange={(event) => {
+                                                const nextItems = [...receiptData.items];
+                                                nextItems[i] = { ...item, price: parseFloat(event.target.value) || 0 };
+                                                const total = nextItems.reduce((sum, nextItem) => sum + nextItem.price, 0);
+                                                setReceiptData({ ...receiptData, items: nextItems, total });
+                                                setAmount(total.toFixed(2));
+                                                initializeSplits(total);
+                                            }}
+                                            className="h-9 rounded-md border border-input bg-background/40 px-2 text-sm"
+                                        />
+                                    </div>
                                 ))}
-                            </ul>
-                            <p className="mt-2 font-extrabold">Total: ${receiptData.total.toFixed(2)}</p>
+                            </div>
+                            <p className="mt-3 font-extrabold">Reviewed total: ${receiptData.total.toFixed(2)}</p>
                         </div>
                     )}
                 </div>
@@ -222,6 +297,23 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                 </div>
 
                 <div>
+                    <label className="mb-2 block text-sm font-extrabold text-foreground">Split mode</label>
+                    <div className="grid grid-cols-2 gap-2">
+                        {(['equal', 'exact', 'percent', 'shares'] as SplitMode[]).map((mode) => (
+                            <Button
+                                key={mode}
+                                type="button"
+                                variant={splitMode === mode ? 'primary' : 'secondary'}
+                                onClick={() => handleSplitModeChange(mode)}
+                                className="h-9 capitalize"
+                            >
+                                {mode}
+                            </Button>
+                        ))}
+                    </div>
+                </div>
+
+                <div>
                     <label className="mb-2 flex items-center gap-2 text-sm font-extrabold text-foreground">
                         <FontAwesomeIcon icon={faScaleBalanced} />
                         Split amounts
@@ -234,14 +326,17 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                                 </label>
                                 <input
                                     type="number"
-                                    value={splits[member.id] || 0}
+                                    value={splits[member.id] || ''}
                                     onChange={(e) => handleSplitChange(member.id, e.target.value)}
-                                    placeholder="0.00"
+                                    placeholder={splitMode === 'percent' ? '0%' : splitMode === 'shares' ? '1' : '0.00'}
                                     step="0.01"
+                                    readOnly={splitMode === 'equal'}
                                     className="h-11 min-w-0 flex-1 rounded-lg border border-input bg-background/35 px-3 text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/35"
                                     disabled={loading}
                                 />
-                                <span className="text-sm font-bold text-muted-foreground">$</span>
+                                <span className="w-16 text-right text-sm font-bold text-muted-foreground">
+                                    ${displaySplitAmount(member.id).toFixed(2)}
+                                </span>
                             </div>
                         ))}
                     </div>
