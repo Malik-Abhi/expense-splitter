@@ -1,13 +1,6 @@
 import type { Metadata } from 'next';
-import { Delius_Swash_Caps } from 'next/font/google';
+import { ThemeFontLoader } from './components/ThemeFontLoader';
 import './globals.css';
-
-const deliusSwashCaps = Delius_Swash_Caps({
-  subsets: ['latin'],
-  weight: ['400'],
-  variable: '--font-delius-swash-caps',
-  display: 'swap',
-});
 
 export const metadata: Metadata = {
   title: 'Splitmint',
@@ -21,8 +14,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={deliusSwashCaps.variable}>
-      <body>{children}</body>
+    <html lang="en">
+      <body>
+        <ThemeFontLoader />
+        {children}
+      </body>
     </html>
   );
 }

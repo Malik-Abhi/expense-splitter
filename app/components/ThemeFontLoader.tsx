@@ -19,40 +19,61 @@ const SYSTEM_FONTS = new Set([
     'ui-serif',
 ]);
 
-const extractFontFamily = (value: string) => {
-    const firstFamily = value
-        .split(',')[0]
-        ?.trim()
-        .replace(/^["']|["']$/g, '');
+const extractGoogleFontFamilies = (value: string) => {
+    return value
+        .split(',')
+        .map((family) => family.trim().replace(/^['"]|['"]$/g, ''))
+        .filter((family) => Boolean(family) && !SYSTEM_FONTS.has(family.toLowerCase()));
+};
 
-    if (!firstFamily || SYSTEM_FONTS.has(firstFamily.toLowerCase())) {
-        return null;
+const createPreconnectLink = (href: string, crossOrigin = false) => {
+    if (document.querySelector(`link[rel="preconnect"][href="${href}"]`)) {
+        return;
     }
 
-    return firstFamily;
+    const link = document.createElement('link');
+    link.rel = 'preconnect';
+    link.href = href;
+    if (crossOrigin) {
+        link.crossOrigin = 'anonymous';
+    }
+    document.head.appendChild(link);
+};
+
+const createFontStylesheet = (families: string[]) => {
+    const encodedFamilies = families.map((family) =>
+        encodeURIComponent(family).replace(/%20/g, '+')
+    );
+
+    const href = `https://fonts.googleapis.com/css2?${encodedFamilies
+        .map((family) => `family=${family}`)
+        .join('&')}&display=swap`;
+console.log('Loading font stylesheet:', href);
+    if (document.querySelector(`link[rel="stylesheet"][href="${href}"]`)) {
+        return;
+    }
+
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
 };
 
 export function ThemeFontLoader() {
     useEffect(() => {
         const computedStyle = window.getComputedStyle(document.documentElement);
+
         const fontFamilies = ['--font-sans', '--font-serif', '--font-mono']
-            .map((token) => extractFontFamily(computedStyle.getPropertyValue(token)))
-            .filter((fontFamily): fontFamily is string => Boolean(fontFamily));
+            .flatMap((token) => extractGoogleFontFamilies(computedStyle.getPropertyValue(token)))
+            .filter((fontFamily, index, array) => array.indexOf(fontFamily) === index);
 
-        const uniqueFonts = Array.from(new Set(fontFamilies));
+        if (fontFamilies.length === 0) {
+            return;
+        }
 
-        uniqueFonts.forEach((fontFamily) => {
-            const linkId = `google-font-${fontFamily.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-            if (document.getElementById(linkId)) {
-                return;
-            }
-
-            const link = document.createElement('link');
-            link.id = linkId;
-            link.rel = 'stylesheet';
-            link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontFamily).replace(/%20/g, '+')}&display=swap`;
-            document.head.appendChild(link);
-        });
+        createPreconnectLink('https://fonts.googleapis.com');
+        createPreconnectLink('https://fonts.gstatic.com', true);
+        createFontStylesheet(fontFamilies);
     }, []);
 
     return null;

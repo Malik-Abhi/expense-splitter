@@ -41,7 +41,37 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
     const [splitMode, setSplitMode] = useState<SplitMode>('equal');
     const [splits, setSplits] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
     const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
+
+    const validateSplits = (total: number, mode: SplitMode, values: Record<string, number>) => {
+        if (total <= 0) {
+            return 'Total amount must be greater than zero.';
+        }
+
+        if (mode === 'exact') {
+            const exactSum = members.reduce((sum, member) => sum + (values[member.id] || 0), 0);
+            if (Math.abs(exactSum - total) > 0.01) {
+                return `Exact amounts must sum to ${total.toFixed(2)}. Current total is ${exactSum.toFixed(2)}.`;
+            }
+        }
+
+        if (mode === 'percent') {
+            const percentSum = members.reduce((sum, member) => sum + (values[member.id] || 0), 0);
+            if (Math.abs(percentSum - 100) > 0.5) {
+                return 'Percent allocations must total 100%.';
+            }
+        }
+
+        if (mode === 'shares') {
+            const sharesTotal = members.reduce((sum, member) => sum + (values[member.id] || 0), 0);
+            if (sharesTotal <= 0) {
+                return 'Enter at least one share value for split shares.';
+            }
+        }
+
+        return null;
+    };
 
     const calculateSplits = (total: number, mode: SplitMode, values: Record<string, number>) => {
         if (members.length === 0) {
@@ -91,6 +121,7 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
 
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
+        setFormError(null);
         setAmount(val);
         if (val) {
             initializeSplits(parseFloat(val));
@@ -98,9 +129,39 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
     };
 
     const handleSplitChange = (memberId: string, value: string) => {
+        setFormError(null);
+        const rawValue = parseFloat(value) || 0;
+        const total = parseFloat(amount) || 0;
+
+        if (splitMode === 'exact') {
+            const otherAmount = members.reduce(
+                (sum, member) => (member.id === memberId ? sum : sum + (splits[member.id] || 0)),
+                0
+            );
+            const maxAllowed = Math.max(0, total - otherAmount);
+            setSplits((prev) => ({
+                ...prev,
+                [memberId]: Math.min(rawValue, maxAllowed),
+            }));
+            return;
+        }
+
+        if (splitMode === 'percent') {
+            const otherPercent = members.reduce(
+                (sum, member) => (member.id === memberId ? sum : sum + (splits[member.id] || 0)),
+                0
+            );
+            const maxAllowed = Math.max(0, 100 - otherPercent);
+            setSplits((prev) => ({
+                ...prev,
+                [memberId]: Math.min(rawValue, maxAllowed),
+            }));
+            return;
+        }
+
         setSplits((prev) => ({
             ...prev,
-            [memberId]: parseFloat(value) || 0,
+            [memberId]: rawValue,
         }));
     };
 
@@ -139,6 +200,14 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
 
         try {
             setLoading(true);
+
+            const total = parseFloat(amount) || 0;
+            const validationError = validateSplits(total, splitMode, splits);
+            if (validationError) {
+                setFormError(validationError);
+                setLoading(false);
+                return;
+            }
 
             const expenseSplits = members
                 .map((m) => ({
@@ -220,7 +289,7 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                                                 nextItems[i] = { ...item, name: event.target.value };
                                                 setReceiptData({ ...receiptData, items: nextItems });
                                             }}
-                                            className="h-9 rounded-md border border-input bg-background/40 px-2 text-sm"
+                                            className="input-field h-9 px-2 text-sm"
                                         />
                                         <input
                                             type="number"
@@ -233,7 +302,7 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                                                 setAmount(total.toFixed(2));
                                                 initializeSplits(total);
                                             }}
-                                            className="h-9 rounded-md border border-input bg-background/40 px-2 text-sm"
+                                            className="input-field h-9 px-2 text-sm"
                                         />
                                     </div>
                                 ))}
@@ -269,7 +338,7 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                     <select
                         value={paidBy}
                         onChange={(e) => setPaidBy(e.target.value)}
-                        className="h-12 w-full rounded-lg border border-input bg-background/35 px-4 text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/35"
+                        className="input-field h-12 w-full px-4 text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/35"
                         disabled={loading}
                     >
                         {members.map((m) => (
@@ -285,7 +354,7 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                     <select
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
-                        className="h-12 w-full rounded-lg border border-input bg-background/35 px-4 text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/35"
+                        className="input-field h-12 w-full px-4 text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/35"
                         disabled={loading}
                     >
                         {categories.map((item) => (
@@ -318,6 +387,11 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                         <FontAwesomeIcon icon={faScaleBalanced} />
                         Split amounts
                     </label>
+                    {formError && (
+                        <div className="rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                            {formError}
+                        </div>
+                    )}
                     <div className="space-y-2">
                         {members.map((member) => (
                             <div key={member.id} className="flex items-center gap-2">
@@ -331,7 +405,7 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                                     placeholder={splitMode === 'percent' ? '0%' : splitMode === 'shares' ? '1' : '0.00'}
                                     step="0.01"
                                     readOnly={splitMode === 'equal'}
-                                    className="h-11 min-w-0 flex-1 rounded-lg border border-input bg-background/35 px-3 text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/35"
+                                    className="input-field h-11 min-w-0 flex-1 px-3 text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/35"
                                     disabled={loading}
                                 />
                                 <span className="w-16 text-right text-sm font-bold text-muted-foreground">
@@ -344,7 +418,12 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
 
                 <Button
                     type="submit"
-                    disabled={loading}
+                    disabled={
+                        loading ||
+                        !description ||
+                        !amount ||
+                        !!validateSplits(parseFloat(amount) || 0, splitMode, splits)
+                    }
                     className="w-full disabled:cursor-not-allowed disabled:opacity-60"
                 >
                     {loading ? 'Adding...' : 'Add expense'}

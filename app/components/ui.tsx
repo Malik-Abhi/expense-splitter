@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRightFromBracket, faMoon, faSun, faWallet } from '@fortawesome/free-solid-svg-icons';
@@ -29,7 +29,7 @@ export function Button({
 }: ButtonProps) {
     return (
         <button
-            className={`inline-flex h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold transition duration-200 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-ring/40 ${buttonVariants[variant]} ${className}`}
+            className={`btn btn-${variant} ${className}`}
             {...props}
         >
             {children}
@@ -45,9 +45,9 @@ interface HeadingProps {
 
 export function Heading({ children, level = 1, className = '' }: HeadingProps) {
     const classes = {
-        1: 'text-4xl font-bold leading-tight tracking-normal text-foreground md:text-5xl',
-        2: 'text-2xl font-bold leading-tight tracking-normal text-foreground',
-        3: 'text-lg font-semibold leading-snug tracking-normal text-foreground',
+        1: 'heading-1',
+        2: 'heading-2',
+        3: 'heading-3',
     };
 
     if (level === 1) {
@@ -67,7 +67,7 @@ interface ParagraphProps {
 }
 
 export function Paragraph({ children, className = '' }: ParagraphProps) {
-    return <p className={`text-base font-medium leading-7 text-muted-foreground ${className}`}>{children}</p>;
+    return <p className={`paragraph ${className}`}>{children}</p>;
 }
 
 interface PanelProps {
@@ -76,10 +76,60 @@ interface PanelProps {
 }
 
 export function Panel({ children, className = '' }: PanelProps) {
+    const [visible, setVisible] = useState(false);
+    const ref = useRef<HTMLElement | null>(null);
+
+    useEffect(() => {
+        const element = ref.current;
+        if (!element) {
+            return;
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        setVisible(true);
+                        observer.unobserve(entry.target);
+                    }
+                });
+            },
+            {
+                threshold: 0.2,
+            }
+        );
+
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, []);
+
     return (
-        <section className={`rounded-lg border border-border bg-card/80 shadow-sm transition duration-200 hover:border-primary/25 ${className}`}>
+        <section
+            ref={ref}
+            className={`panel glass-card reveal ${visible ? 'reveal-visible' : ''} ${className}`}
+        >
             {children}
         </section>
+    );
+}
+
+interface LoadingOverlayProps {
+    active: boolean;
+    text?: string;
+}
+
+export function LoadingOverlay({ active, text = 'Loading...' }: LoadingOverlayProps) {
+    if (!active) {
+        return null;
+    }
+
+    return (
+        <div className="loading-overlay">
+            <div className="loading-card">
+                <div className="loading-spinner" />
+                <span className="paragraph">{text}</span>
+            </div>
+        </div>
     );
 }
 
@@ -89,10 +139,10 @@ interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
 
 export function TextField({ label, className = '', ...props }: TextFieldProps) {
     return (
-        <label className="block space-y-2">
-            <span className="text-sm font-semibold text-foreground">{label}</span>
+        <label className="text-field">
+            <span className="text-field-label">{label}</span>
             <input
-                className={`h-11 w-full rounded-md border border-input bg-background/40 px-3 text-foreground outline-none transition placeholder:text-muted-foreground/65 focus:border-primary focus:ring-2 focus:ring-ring/30 ${className}`}
+                className={`input-field ${className}`}
                 {...props}
             />
         </label>
@@ -106,17 +156,17 @@ interface LogoProps {
 
 export function Logo({ href, centered = false }: LogoProps) {
     const content = (
-        <span className={`inline-flex items-center gap-3 ${centered ? 'justify-center' : ''}`}>
-            <span className="grid h-10 w-10 place-items-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground shadow-sm">
-                <FontAwesomeIcon icon={faWallet} className="h-5 w-5" />
+        <span className={`logo ${centered ? 'justify-center' : ''}`}>
+            <span className="logo-badge">
+                <FontAwesomeIcon icon={faWallet} className="icon-small" />
             </span>
-            <span className="text-2xl font-bold text-sidebar-primary">Splitmint</span>
+            <span className="logo-title">Splitmint</span>
         </span>
     );
 
     if (href) {
         return (
-            <Link href={href} className="inline-flex rounded-lg outline-none focus:ring-2 focus:ring-ring/60">
+            <Link href={href} className="logo-link">
                 {content}
             </Link>
         );
@@ -152,13 +202,13 @@ export function AppShell({ children, email, onSignOut }: AppShellProps) {
     };
 
     return (
-        <main className="min-h-screen overflow-hidden border border-border/50 bg-background/90 shadow-2xl">
-            <header className="border-b border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm">
-                <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 md:px-10">
+        <main className="app-shell">
+            <header className="app-shell-header">
+                <div className="app-shell-header-inner">
                     <Logo href="/" />
                     {email && (
-                        <div className="flex min-w-0 items-center gap-3">
-                            <span className="hidden truncate text-sm font-semibold text-sidebar-foreground/80 sm:block">
+                        <div className="app-shell-actions">
+                            <span className="account-email">
                                 {email}
                             </span>
                             <button
@@ -168,19 +218,16 @@ export function AppShell({ children, email, onSignOut }: AppShellProps) {
                                 aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
                                 title={isDark ? 'Light mode' : 'Dark mode'}
                                 onClick={toggleTheme}
-                                className="relative inline-flex h-10 w-20 items-center rounded-full border border-sidebar-border bg-sidebar-accent px-1.5 text-sidebar-accent-foreground shadow-xs transition hover:-translate-y-0.5 hover:border-sidebar-ring focus:outline-none focus:ring-2 focus:ring-sidebar-ring/40"
+                                className="theme-toggle"
                             >
-                                <span className="grid h-7 w-7 place-items-center text-sidebar-accent-foreground/70">
-                                    <FontAwesomeIcon icon={faSun} className="h-3.5 w-3.5" />
+                                <span className="theme-toggle-icon">
+                                    <FontAwesomeIcon icon={faSun} className="icon-xs" />
                                 </span>
-                                <span className="ml-auto grid h-7 w-7 place-items-center text-sidebar-accent-foreground/70">
-                                    <FontAwesomeIcon icon={faMoon} className="h-3.5 w-3.5" />
+                                <span className="theme-toggle-icon theme-toggle-icon--secondary">
+                                    <FontAwesomeIcon icon={faMoon} className="icon-xs" />
                                 </span>
-                                <span
-                                    className={`absolute top-1 grid h-8 w-8 place-items-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground shadow-sm transition-transform duration-200 ${isDark ? 'translate-x-9' : 'translate-x-0'
-                                        }`}
-                                >
-                                    <FontAwesomeIcon icon={isDark ? faMoon : faSun} className="h-3.5 w-3.5" />
+                                <span className={`theme-thumb ${isDark ? 'dark' : ''}`}>
+                                    <FontAwesomeIcon icon={isDark ? faMoon : faSun} className="icon-xs" />
                                 </span>
                             </button>
                             <button
@@ -188,9 +235,9 @@ export function AppShell({ children, email, onSignOut }: AppShellProps) {
                                 aria-label="Sign out"
                                 title="Sign out"
                                 onClick={onSignOut}
-                                className="grid h-10 w-10 place-items-center rounded-md border border-sidebar-border bg-sidebar-primary text-sidebar-primary-foreground shadow-xs transition hover:-translate-y-0.5 hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-sidebar-ring/40"
+                                className="signout-button"
                             >
-                                <FontAwesomeIcon icon={faArrowRightFromBracket} className="h-4 w-4" />
+                                <FontAwesomeIcon icon={faArrowRightFromBracket} className="icon-xs" />
                             </button>
                         </div>
                     )}

@@ -1,6 +1,8 @@
 'use client';
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -15,7 +17,7 @@ import {
   faWallet,
 } from '@fortawesome/free-solid-svg-icons';
 import { GroupCard } from './components/GroupCard';
-import { AppShell, Button, Heading, Logo, Panel, Paragraph, TextField } from './components/ui';
+import { AppShell, Button, Heading, LoadingOverlay, Logo, Panel, Paragraph, TextField } from './components/ui';
 
 interface Member {
   id: string;
@@ -49,7 +51,6 @@ interface UserProfile {
 }
 
 type AuthMode = 'sign-in' | 'create-account';
-type HomeView = 'groups' | 'account';
 
 const AUTH_STORAGE_KEY = 'splitmint-account-email';
 const CONTACTS_STORAGE_KEY = 'splitmint-account-members';
@@ -86,10 +87,6 @@ export default function Home() {
     return storedCategories ? JSON.parse(storedCategories) : DEFAULT_CATEGORIES;
   });
   const [categoryName, setCategoryName] = useState('');
-  const [authMode, setAuthMode] = useState<AuthMode>('sign-in');
-  const [activeView, setActiveView] = useState<HomeView>('groups');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [accountEmail, setAccountEmail] = useState<string | null>(() => {
     if (typeof window === 'undefined') {
       return null;
@@ -98,6 +95,13 @@ export default function Home() {
     return window.localStorage.getItem(AUTH_STORAGE_KEY);
   });
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (accountEmail === null) {
+      router.replace('/login');
+    }
+  }, [accountEmail, router]);
 
   const persistContacts = (nextContacts: Member[]) => {
     setContacts(nextContacts);
@@ -269,30 +273,6 @@ export default function Home() {
     setSelectedMembers((current) => [...current, contact]);
   };
 
-  const handleAuth = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (!email || !password) {
-      alert('Please enter your email and password');
-      return;
-    }
-
-    try {
-      const response = await axios.post('/api/auth', { email, password, mode: authMode });
-      const nextProfile = response.data.user as UserProfile;
-      window.localStorage.setItem(AUTH_STORAGE_KEY, nextProfile.email);
-      window.localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(nextProfile.members || []));
-      window.localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(nextProfile.categories || DEFAULT_CATEGORIES));
-      setProfile(nextProfile);
-      setContacts(nextProfile.members || []);
-      setCategories(nextProfile.categories || DEFAULT_CATEGORIES);
-      setAccountEmail(nextProfile.email);
-    } catch (error) {
-      alert('Could not sign in. Check your email/password or create an account.');
-      console.error(error);
-    }
-  };
-
   const handleSignOut = () => {
     window.localStorage.removeItem(AUTH_STORAGE_KEY);
     setAccountEmail(null);
@@ -364,77 +344,35 @@ export default function Home() {
   };
 
   if (!accountEmail) {
-    return (
-      <main className="grid min-h-screen place-items-center px-6 py-12">
-        <div className="w-full max-w-lg">
-          <div className="mb-10 flex justify-center">
-            <Logo centered />
-          </div>
-
-          <Panel className="p-7">
-            <div className="mb-8 grid rounded-md border border-border bg-background/30 p-1">
-              <div className="grid grid-cols-2 gap-1">
-                {(['sign-in', 'create-account'] as AuthMode[]).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setAuthMode(mode)}
-                    className={`h-10 rounded-sm text-sm font-semibold transition ${authMode === mode
-                      ? 'bg-card text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                  >
-                    {mode === 'sign-in' ? 'Sign in' : 'Create account'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <form onSubmit={handleAuth} className="space-y-5">
-              <TextField label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
-              <TextField
-                label="Password"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete={authMode === 'sign-in' ? 'current-password' : 'new-password'}
-              />
-              <Button type="submit" className="w-full">
-                {authMode === 'sign-in' ? 'Sign in' : 'Create account'}
-              </Button>
-            </form>
-          </Panel>
-        </div>
-      </main>
-    );
+    return null;
   }
 
   return (
     <AppShell email={accountEmail} onSignOut={handleSignOut}>
+      <LoadingOverlay active={loading} text="Syncing your groups..." />
       <div className="mx-auto max-w-7xl px-6 py-10 md:px-10">
         <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
-            <Heading>{activeView === 'groups' ? 'Groups' : 'My account'}</Heading>
-            <Paragraph className="mt-2">
-              {activeView === 'groups'
-                ? 'Manage shared expenses without messy follow-ups.'
-                : 'Contacts, categories, and pending balances across your groups.'}
-            </Paragraph>
+            <Heading>Groups</Heading>
+            <Paragraph className="mt-2">Manage shared expenses without messy follow-ups.</Paragraph>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant={activeView === 'groups' ? 'primary' : 'secondary'} onClick={() => setActiveView('groups')}>
-              <FontAwesomeIcon icon={faLayerGroup} />
-              Groups
-            </Button>
-            <Button type="button" variant={activeView === 'account' ? 'primary' : 'secondary'} onClick={() => setActiveView('account')}>
-              <FontAwesomeIcon icon={faWallet} />
-              Account
-            </Button>
+          <div className="hidden md:flex flex-wrap gap-2">
+            <Link href="/" className="inline-flex">
+              <Button type="button" variant="primary">
+                <FontAwesomeIcon icon={faLayerGroup} />
+                Groups
+              </Button>
+            </Link>
+            <Link href="/account" className="inline-flex">
+              <Button type="button" variant="secondary">
+                <FontAwesomeIcon icon={faWallet} />
+                Account
+              </Button>
+            </Link>
           </div>
         </div>
 
-        {activeView === 'groups' ? (
-          <>
+        <>
             <div className="mb-6 flex justify-end">
               <Button type="button" onClick={() => setShowForm((current) => !current)}>
                 <FontAwesomeIcon icon={faFolderPlus} />
@@ -553,139 +491,15 @@ export default function Home() {
               </div>
             )}
           </>
-        ) : (
-          <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-            <Panel className="p-6">
-              <div className="mb-5 flex items-center gap-3">
-                <FontAwesomeIcon icon={faUsers} className="text-primary" />
-                <Heading level={2}>Saved members</Heading>
-              </div>
-              <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
-                <TextField label="Name" value={memberName} onChange={(event) => setMemberName(event.target.value)} />
-                <TextField label="Email" value={memberEmail} onChange={(event) => setMemberEmail(event.target.value)} />
-                <Button type="button" variant="secondary" onClick={saveAccountContact}>
-                  <FontAwesomeIcon icon={faUserPlus} />
-                  Save
-                </Button>
-              </div>
-              <div className="mt-5 grid gap-2">
-                {contacts.length === 0 ? (
-                  <Paragraph>No saved members yet.</Paragraph>
-                ) : (
-                  contacts.map((contact) => (
-                    <div key={contact.id} className="flex items-center justify-between rounded-md border border-border bg-background/25 p-3">
-                      <div>
-                        <p className="font-semibold">{contact.name}</p>
-                        <p className="text-sm text-muted-foreground">{contact.email || 'No email saved'}</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => persistContacts(contacts.filter((item) => item.id !== contact.id))}
-                        className="rounded-md px-2 py-1 text-muted-foreground transition hover:bg-destructive/15 hover:text-destructive"
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </Panel>
-
-            <Panel className="p-6">
-              <div className="mb-5 flex items-center gap-3">
-                <FontAwesomeIcon icon={faChartPie} className="text-primary" />
-                <Heading level={2}>Categories</Heading>
-              </div>
-              <div className="flex gap-2">
-                <TextField label="New category" value={categoryName} onChange={(event) => setCategoryName(event.target.value)} />
-                <Button type="button" className="mt-7" onClick={handleAddCategory}>
-                  Add
-                </Button>
-              </div>
-              <div className="mt-5 flex flex-wrap gap-2">
-                {categories.map((category, index) => (
-                  <span
-                    key={category}
-                    className="inline-flex items-center gap-2 rounded-full border bg-background/30 px-3 py-1.5 text-sm font-semibold"
-                    style={{ borderColor: CHART_COLORS[index % CHART_COLORS.length] }}
-                  >
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
-                    />
-                    {category}
-                    <button type="button" onClick={() => handleRemoveCategory(category)} className="text-muted-foreground hover:text-destructive">
-                      <FontAwesomeIcon icon={faTrash} className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </Panel>
-
-            <Panel className="p-6 lg:col-span-2">
-              <div className="mb-5 flex items-center gap-3">
-                <FontAwesomeIcon icon={faArrowTrendUp} className="text-primary" />
-                <Heading level={2}>Pending by group</Heading>
-              </div>
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {accountSummary.length === 0 ? (
-                  <Paragraph>No group activity yet.</Paragraph>
-                ) : (
-                  accountSummary.map((summary) => (
-                    <div key={summary.groupId} className="rounded-lg border border-border bg-background/25 p-4 transition hover:-translate-y-1 hover:border-primary/40">
-                      <div className="mb-3 flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-foreground">{summary.groupName}</p>
-                          <p className="text-sm text-muted-foreground">{summary.members} members</p>
-                        </div>
-                        <span className="rounded-md bg-accent px-2.5 py-1 font-mono text-sm font-semibold">
-                          ${summary.totalSpend.toFixed(2)}
-                        </span>
-                      </div>
-                      {summary.outstanding.length === 0 ? (
-                        <Paragraph className="text-sm">Everyone is settled.</Paragraph>
-                      ) : (
-                        <div className="space-y-2">
-                          {summary.outstanding.map((item) => (
-                            <div key={item.member} className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">{item.member}</span>
-                              <span className={item.amount >= 0 ? 'font-mono font-semibold text-primary' : 'font-mono font-semibold text-destructive'}>
-                                {item.amount >= 0 ? '+' : '-'}${Math.abs(item.amount).toFixed(2)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            </Panel>
-          </div>
-        )}
         <div className="fixed inset-x-4 bottom-4 z-20 grid grid-cols-2 gap-2 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-lg md:hidden">
-          <button
-            type="button"
-            onClick={() => setActiveView('groups')}
-            className={`h-11 rounded-lg text-sm font-semibold ${activeView === 'groups'
-              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-              : 'text-sidebar-foreground'
-              }`}
-          >
+          <Link href="/" className="h-11 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground text-sm font-semibold grid place-items-center">
             <FontAwesomeIcon icon={faLayerGroup} className="mr-2" />
             Groups
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveView('account')}
-            className={`h-11 rounded-lg text-sm font-semibold ${activeView === 'account'
-              ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-              : 'text-sidebar-foreground'
-              }`}
-          >
+          </Link>
+          <Link href="/account" className="h-11 rounded-lg text-sm font-semibold text-sidebar-foreground grid place-items-center">
             <FontAwesomeIcon icon={faWallet} className="mr-2" />
             Account
-          </button>
+          </Link>
         </div>
       </div>
     </AppShell>
