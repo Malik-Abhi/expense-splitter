@@ -106,9 +106,11 @@ export function Panel({ children, className = '' }: PanelProps) {
     return (
         <section
             ref={ref}
-            className={`panel glass-card reveal ${visible ? 'reveal-visible' : ''} ${className}`}
+            className={`panel reveal ${visible ? 'reveal-visible' : ''}`}
         >
-            {children}
+            <div className={`panel-inner ${className}`}>
+                {children}
+            </div>
         </section>
     );
 }
@@ -211,25 +213,15 @@ export function AppShell({ children, email, onSignOut }: AppShellProps) {
                             <span className="account-email">
                                 {email}
                             </span>
-                            <button
-                                type="button"
-                                role="switch"
-                                aria-checked={isDark}
-                                aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-                                title={isDark ? 'Light mode' : 'Dark mode'}
-                                onClick={toggleTheme}
-                                className="theme-toggle"
-                            >
-                                <span className="theme-toggle-icon">
-                                    <FontAwesomeIcon icon={faSun} className="icon-xs" />
-                                </span>
-                                <span className="theme-toggle-icon theme-toggle-icon--secondary">
-                                    <FontAwesomeIcon icon={faMoon} className="icon-xs" />
-                                </span>
-                                <span className={`theme-thumb ${isDark ? 'dark' : ''}`}>
-                                    <FontAwesomeIcon icon={isDark ? faMoon : faSun} className="icon-xs" />
-                                </span>
-                            </button>
+                            <label className="switch">
+                                <input
+                                    type="checkbox"
+                                    checked={!isDark}
+                                    onChange={toggleTheme}
+                                    aria-label={!isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                                />
+                                <span className="slider" />
+                            </label>
                             <button
                                 type="button"
                                 aria-label="Sign out"
