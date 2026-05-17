@@ -1,13 +1,11 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faArrowTrendUp,
-  faChartPie,
   faFolderPlus,
   faLayerGroup,
   faPlus,
@@ -17,7 +15,7 @@ import {
   faWallet,
 } from '@fortawesome/free-solid-svg-icons';
 import { GroupCard } from './components/GroupCard';
-import { AppShell, Button, Heading, LoadingOverlay, Panel, Paragraph, TextField } from './components/ui';
+import { AppShell, Badge, BottomNav, Button, EmptyState, Heading, IconButton, ListItem, LoadingOverlay, Panel, Paragraph, SectionHeader, TextField } from './components/ui';
 
 interface Member {
   id: string;
@@ -33,14 +31,6 @@ interface Group {
   createdAt: string;
 }
 
-interface Expense {
-  _id: string;
-  groupId: string;
-  amount: number;
-  paidBy: { id: string; name: string };
-  splits: Array<{ personId: string; name: string; amount: number }>;
-}
-
 interface UserProfile {
   id?: string;
   email: string;
@@ -50,19 +40,15 @@ interface UserProfile {
   categories: string[];
 }
 
-type AuthMode = 'sign-in' | 'create-account';
-
 const AUTH_STORAGE_KEY = 'splitmint-account-email';
 const CONTACTS_STORAGE_KEY = 'splitmint-account-members';
 const CATEGORIES_STORAGE_KEY = 'splitmint-categories';
 const DEFAULT_CATEGORIES = ['Food', 'Transport', 'Stay', 'Groceries', 'Entertainment', 'Utilities'];
-const CHART_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
 
 const makeId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 export default function Home() {
   const [groups, setGroups] = useState<Group[]>([]);
-  const [expensesByGroup, setExpensesByGroup] = useState<Record<string, Expense[]>>({});
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
@@ -86,7 +72,6 @@ export default function Home() {
     const storedCategories = window.localStorage.getItem(CATEGORIES_STORAGE_KEY);
     return storedCategories ? JSON.parse(storedCategories) : DEFAULT_CATEGORIES;
   });
-  const [categoryName, setCategoryName] = useState('');
   const [accountEmail, setAccountEmail] = useState<string | null>(() => {
     if (typeof window === 'undefined') {
       return null;
@@ -113,20 +98,6 @@ export default function Home() {
         currency: profile?.currency || 'USD',
         members: nextContacts,
         categories,
-      });
-    }
-  };
-
-  const persistCategories = (nextCategories: string[]) => {
-    setCategories(nextCategories);
-    window.localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(nextCategories));
-    if (accountEmail) {
-      void axios.put('/api/profile', {
-        email: accountEmail,
-        name: profile?.name || accountEmail.split('@')[0],
-        currency: profile?.currency || 'USD',
-        members: contacts,
-        categories: nextCategories,
       });
     }
   };
@@ -164,68 +135,6 @@ export default function Home() {
     }
   }, [accountEmail, fetchGroups]);
 
-  useEffect(() => {
-    if (!groups.length) {
-      return;
-    }
-
-    let cancelled = false;
-
-    const fetchExpenses = async () => {
-      const entries = await Promise.all(
-        groups.map(async (group) => {
-          try {
-            const response = await axios.get(`/api/expenses?groupId=${group._id}`);
-            return [group._id, response.data] as const;
-          } catch {
-            return [group._id, []] as const;
-          }
-        })
-      );
-
-      if (!cancelled) {
-        setExpensesByGroup(Object.fromEntries(entries));
-      }
-    };
-
-    void fetchExpenses();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [groups]);
-
-  const accountSummary = useMemo(() => {
-    return groups.map((group) => {
-      const balances: Record<string, number> = {};
-      group.members.forEach((member) => {
-        balances[member.id] = 0;
-      });
-
-      (expensesByGroup[group._id] || []).forEach((expense) => {
-        balances[expense.paidBy.id] = (balances[expense.paidBy.id] || 0) + expense.amount;
-        expense.splits.forEach((split) => {
-          balances[split.personId] = (balances[split.personId] || 0) - split.amount;
-        });
-      });
-
-      const outstanding = Object.entries(balances)
-        .filter(([, amount]) => Math.abs(amount) > 0.01)
-        .map(([memberId, amount]) => ({
-          member: group.members.find((member) => member.id === memberId)?.name || memberId,
-          amount,
-        }));
-
-      return {
-        groupId: group._id,
-        groupName: group.name,
-        members: group.members.length,
-        totalSpend: (expensesByGroup[group._id] || []).reduce((sum, expense) => sum + expense.amount, 0),
-        outstanding,
-      };
-    });
-  }, [expensesByGroup, groups]);
-
   const addMemberToDraft = () => {
     if (!memberName.trim()) {
       return;
@@ -241,23 +150,6 @@ export default function Home() {
     if (!contacts.some((contact) => contact.email && contact.email === member.email)) {
       persistContacts([...contacts, member]);
     }
-    setMemberName('');
-    setMemberEmail('');
-  };
-
-  const saveAccountContact = () => {
-    if (!memberName.trim()) {
-      return;
-    }
-
-    persistContacts([
-      ...contacts,
-      {
-        id: makeId('contact'),
-        name: memberName.trim(),
-        email: memberEmail.trim() || undefined,
-      },
-    ]);
     setMemberName('');
     setMemberEmail('');
   };
@@ -318,29 +210,10 @@ export default function Home() {
     try {
       await axios.delete(`/api/groups/${groupId}`);
       setGroups((currentGroups) => currentGroups.filter((item) => item._id !== groupId));
-      setExpensesByGroup((current) => {
-        const next = { ...current };
-        delete next[groupId];
-        return next;
-      });
     } catch (error) {
       alert('Failed to delete group');
       console.error(error);
     }
-  };
-
-  const handleAddCategory = () => {
-    const nextCategory = categoryName.trim();
-    if (!nextCategory || categories.includes(nextCategory)) {
-      return;
-    }
-
-    persistCategories([...categories, nextCategory]);
-    setCategoryName('');
-  };
-
-  const handleRemoveCategory = (category: string) => {
-    persistCategories(categories.filter((item) => item !== category));
   };
 
   if (!accountEmail) {
@@ -356,7 +229,7 @@ export default function Home() {
             <Heading>Groups</Heading>
             <Paragraph className="mt-2">Manage shared expenses without messy follow-ups.</Paragraph>
           </div>
-          <div className="hidden md:flex flex-wrap gap-2">
+          <div className="hidden flex-wrap gap-2 md:flex">
             <Link href="/" className="inline-flex">
               <Button type="button" variant="primary">
                 <FontAwesomeIcon icon={faLayerGroup} />
@@ -402,13 +275,12 @@ export default function Home() {
 
                 <div className="rounded-lg border border-border bg-background/25 p-4">
                   <div className="mb-4 flex items-center justify-between gap-3">
-                    <div>
-                      <Heading level={3}>Members</Heading>
-                      <Paragraph className="text-sm">Add members one at a time or pick from saved contacts.</Paragraph>
-                    </div>
-                    <span className="rounded-md bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground">
-                      {selectedMembers.length} selected
-                    </span>
+                    <SectionHeader
+                      title="Members"
+                      description="Add members one at a time or pick from saved contacts."
+                      className="mb-0"
+                      action={<Badge tone="accent">{selectedMembers.length} selected</Badge>}
+                    />
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
@@ -423,15 +295,16 @@ export default function Home() {
                   {contacts.length > 0 && (
                     <div className="mt-4 flex flex-wrap gap-2">
                       {contacts.map((contact) => (
-                        <button
+                        <Button
                           key={contact.id}
                           type="button"
+                          variant="secondary"
                           onClick={() => addContactToDraft(contact)}
-                          className="rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium text-muted-foreground transition hover:-translate-y-0.5 hover:border-primary/50 hover:text-foreground"
+                          className="h-9 rounded-full"
                         >
                           <FontAwesomeIcon icon={faPlus} className="mr-2" />
                           {contact.name}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   )}
@@ -439,20 +312,20 @@ export default function Home() {
                   {selectedMembers.length > 0 && (
                     <div className="mt-5 grid gap-2 md:grid-cols-2">
                       {selectedMembers.map((member) => (
-                        <div key={member.id} className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2">
-                          <div>
-                            <p className="font-semibold text-foreground">{member.name}</p>
-                            {member.email && <p className="text-xs text-muted-foreground">{member.email}</p>}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeDraftMember(member.id)}
-                            className="rounded-md px-2 py-1 text-muted-foreground transition hover:bg-destructive/15 hover:text-destructive"
-                            aria-label={`Remove ${member.name}`}
-                          >
-                            <FontAwesomeIcon icon={faTrash} />
-                          </button>
-                        </div>
+                        <ListItem
+                          key={member.id}
+                          title={member.name}
+                          description={member.email || 'No email saved'}
+                          className="bg-card"
+                          trailing={
+                            <IconButton
+                              icon={faTrash}
+                              label={`Remove ${member.name}`}
+                              variant="danger"
+                              onClick={() => removeDraftMember(member.id)}
+                            />
+                          }
+                        />
                       ))}
                     </div>
                   )}
@@ -472,17 +345,16 @@ export default function Home() {
                 </Panel>
               ) : groups.length === 0 ? (
                 <Panel className="grid min-h-96 place-items-center border-dashed p-10 text-center">
-                  <div className="mx-auto max-w-xl">
-                    <div className="mx-auto mb-7 grid h-16 w-16 place-items-center rounded-lg bg-accent text-primary">
-                      <FontAwesomeIcon icon={faUsers} className="h-7 w-7" />
-                    </div>
-                    <Heading level={2}>No groups yet</Heading>
-                    <Paragraph className="mt-3">Create one for a trip, apartment, project, or recurring dinner plan.</Paragraph>
-                    <Button type="button" onClick={() => setShowForm(true)} className="mt-8">
-                      <FontAwesomeIcon icon={faFolderPlus} />
-                      Create your first group
-                    </Button>
-                  </div>
+                  <EmptyState
+                    icon={faUsers}
+                    title="No groups yet"
+                    description="Create one for a trip, apartment, project, or recurring dinner plan."
+                    action={
+                      <Button type="button" onClick={() => setShowForm(true)} icon={faFolderPlus}>
+                        Create your first group
+                      </Button>
+                    }
+                  />
                 </Panel>
               ) : (
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -493,16 +365,13 @@ export default function Home() {
               )}
             </> : null}
         </>
-        <div className="fixed inset-x-4 bottom-4 z-20 grid grid-cols-2 gap-2 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-lg md:hidden">
-          <Link href="/" className="h-11 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground text-sm font-semibold grid place-items-center">
-            <FontAwesomeIcon icon={faLayerGroup} className="mr-2" />
-            Groups
-          </Link>
-          <Link href="/account" className="h-11 rounded-lg text-sm font-semibold text-sidebar-foreground grid place-items-center">
-            <FontAwesomeIcon icon={faWallet} className="mr-2" />
-            Account
-          </Link>
-        </div>
+        <BottomNav
+          activeHref="/"
+          items={[
+            { href: '/', label: 'Groups', icon: faLayerGroup },
+            { href: '/account', label: 'Account', icon: faWallet },
+          ]}
+        />
       </div>
     </AppShell>
   );

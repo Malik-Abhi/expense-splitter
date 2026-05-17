@@ -5,7 +5,7 @@ import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faKeyboard, faReceipt, faScaleBalanced } from '@fortawesome/free-solid-svg-icons';
 import { ReceiptUpload } from './ReceiptUpload';
-import { Button, Heading, Panel, TextField } from './ui';
+import { Button, Paragraph, SegmentedControl, SelectField, TextField } from './ui';
 
 interface ReceiptData {
     items: Array<{ name: string; price: number }>;
@@ -215,7 +215,7 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                     name: m.name,
                     amount: displaySplitAmount(m.id),
                 }))
-                .filter((split) => split.amount > 0)
+                .filter((split) => split.amount > 0);
 
             const expense = {
                 groupId,
@@ -250,26 +250,15 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
 
     return (
         <div className="p-6">
-            <div className="mb-6 grid grid-cols-2 gap-1 rounded-lg bg-accent p-1">
-                <Button
-                    type="button"
-                    onClick={() => setMethod('manual')}
-                    variant={method === 'manual' ? 'primary' : 'ghost'}
-                    className="h-10 shadow-none"
-                >
-                    <FontAwesomeIcon icon={faKeyboard} />
-                    Manual
-                </Button>
-                <Button
-                    type="button"
-                    onClick={() => setMethod('receipt')}
-                    variant={method === 'receipt' ? 'primary' : 'ghost'}
-                    className="h-10 shadow-none"
-                >
-                    <FontAwesomeIcon icon={faReceipt} />
-                    Receipt
-                </Button>
-            </div>
+            <SegmentedControl
+                value={method}
+                onChange={setMethod}
+                className="mb-6 grid-cols-2"
+                options={[
+                    { value: 'manual', label: 'Manual', icon: faKeyboard },
+                    { value: 'receipt', label: 'Receipt', icon: faReceipt },
+                ]}
+            />
 
             {method === 'receipt' && (
                 <div className="mb-6">
@@ -305,7 +294,7 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                                     </div>
                                 ))}
                             </div>
-                            <p className="mt-3 font-extrabold">Reviewed total: ${receiptData.total.toFixed(2)}</p>
+                            <Paragraph className="mt-3 font-extrabold text-foreground">Reviewed total: ${receiptData.total.toFixed(2)}</Paragraph>
                         </div>
                     )}
                 </div>
@@ -331,53 +320,35 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                     disabled={loading}
                 />
 
-                <div>
-                    <label className="mb-2 block text-sm font-extrabold text-foreground">Paid by</label>
-                    <select
-                        value={paidBy}
-                        onChange={(e) => setPaidBy(e.target.value)}
-                        className="input-field h-12 w-full px-4 text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/35"
-                        disabled={loading}
-                    >
-                        {members.map((m) => (
-                            <option key={m.id} value={m.id}>
-                                {m.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                <SelectField label="Paid by" value={paidBy} onChange={(e) => setPaidBy(e.target.value)} disabled={loading}>
+                    {members.map((m) => (
+                        <option key={m.id} value={m.id}>
+                            {m.name}
+                        </option>
+                    ))}
+                </SelectField>
 
-                <div>
-                    <label className="mb-2 block text-sm font-extrabold text-foreground">Category</label>
-                    <select
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        className="input-field h-12 w-full px-4 text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/35"
-                        disabled={loading}
-                    >
-                        {categories.map((item) => (
-                            <option key={item} value={item}>
-                                {item}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                <SelectField label="Category" value={category} onChange={(e) => setCategory(e.target.value)} disabled={loading}>
+                    {categories.map((item) => (
+                        <option key={item} value={item}>
+                            {item}
+                        </option>
+                    ))}
+                </SelectField>
 
                 <div>
                     <label className="mb-2 block text-sm font-extrabold text-foreground">Split mode</label>
-                    <div className="grid grid-cols-2 gap-2">
-                        {(['equal', 'exact', 'percent', 'shares'] as SplitMode[]).map((mode) => (
-                            <Button
-                                key={mode}
-                                type="button"
-                                variant={splitMode === mode ? 'primary' : 'secondary'}
-                                onClick={() => handleSplitModeChange(mode)}
-                                className="h-9 capitalize"
-                            >
-                                {mode}
-                            </Button>
-                        ))}
-                    </div>
+                    <SegmentedControl
+                        value={splitMode}
+                        onChange={handleSplitModeChange}
+                        className="grid-cols-2"
+                        options={[
+                            { value: 'equal', label: 'Equal' },
+                            { value: 'exact', label: 'Exact' },
+                            { value: 'percent', label: 'Percent' },
+                            { value: 'shares', label: 'Shares' },
+                        ]}
+                    />
                 </div>
 
                 <div>
@@ -392,10 +363,10 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                     )}
                     <div className="space-y-2">
                         {members.map((member) => (
-                            <div key={member.id} className="flex items-center gap-2">
-                                <label className="w-24 truncate text-sm font-bold text-muted-foreground">
+                            <div key={member.id} className="grid gap-2 rounded-md border border-border bg-background/25 p-3 sm:grid-cols-[7rem_1fr_4rem] sm:items-center">
+                                <span className="truncate text-sm font-bold text-muted-foreground">
                                     {member.name}
-                                </label>
+                                </span>
                                 <input
                                     type="number"
                                     value={splits[member.id] || ''}
@@ -406,7 +377,7 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                                     className="input-field h-11 min-w-0 flex-1 px-3 text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/35"
                                     disabled={loading}
                                 />
-                                <span className="w-16 text-right text-sm font-bold text-muted-foreground">
+                                <span className="text-right text-sm font-bold text-muted-foreground">
                                     ${displaySplitAmount(member.id).toFixed(2)}
                                 </span>
                             </div>

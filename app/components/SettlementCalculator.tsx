@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheckCircle, faClock, faMoneyBillTransfer } from '@fortawesome/free-solid-svg-icons';
-import { Button, Heading, Panel, Paragraph } from './ui';
+import { Badge, Button, Heading, ListItem, Panel, Paragraph } from './ui';
 
 interface ExpenseSplit {
     personId: string;
@@ -100,9 +100,7 @@ export function SettlementCalculator({
         <Panel className="p-6">
             <div className="mb-4 flex items-center justify-between">
                 <Heading level={2}>Settlement plan</Heading>
-                <span className="rounded-full bg-accent px-3 py-1 text-sm font-semibold">
-                    {settled.size}/{settlements.length} paid
-                </span>
+                <Badge tone="accent">{settled.size}/{settlements.length} paid</Badge>
             </div>
 
             {settlements.length === 0 ? (
@@ -114,23 +112,17 @@ export function SettlementCalculator({
                         const isSettled = settled.has(id);
 
                         return (
-                            <div
+                            <ListItem
                                 key={i}
-                                className={`rounded-lg border p-4 ${isSettled
-                                        ? 'border-primary/60 bg-primary/10'
-                                        : 'border-border bg-background/25'
-                                    }`}
-                            >
-                                <div className="flex items-center justify-between gap-4">
-                                    <div>
-                                        <p className="font-extrabold text-foreground">
-                                            <FontAwesomeIcon icon={faMoneyBillTransfer} className="mr-2 text-primary" />
-                                            {getMemberName(settlement.from)} → {getMemberName(settlement.to)}
-                                        </p>
-                                        <p className="font-mono text-lg font-black text-primary">
-                                            ${settlement.amount.toFixed(2)}
-                                        </p>
-                                    </div>
+                                title={
+                                    <>
+                                        <FontAwesomeIcon icon={faMoneyBillTransfer} className="mr-2 text-primary" />
+                                        {getMemberName(settlement.from)} to {getMemberName(settlement.to)}
+                                    </>
+                                }
+                                description={`$${settlement.amount.toFixed(2)}`}
+                                className={isSettled ? 'border-primary/60 bg-primary/10' : ''}
+                                trailing={
                                     <Button
                                         type="button"
                                         onClick={() => toggleSettled(id)}
@@ -140,8 +132,8 @@ export function SettlementCalculator({
                                         <FontAwesomeIcon icon={isSettled ? faCheckCircle : faClock} />
                                         {isSettled ? 'Settled' : 'Mark paid'}
                                     </Button>
-                                </div>
-                            </div>
+                                }
+                            />
                         );
                     })}
                 </div>

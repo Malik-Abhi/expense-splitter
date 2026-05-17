@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
-import { Button, Heading, Logo, Panel, Paragraph, TextField, LoadingOverlay } from '../components/ui';
+import { Button, Logo, Panel, Paragraph, TextField, LoadingOverlay, SegmentedControl } from '../components/ui';
 
 const AUTH_STORAGE_KEY = 'splitmint-account-email';
 const CONTACTS_STORAGE_KEY = 'splitmint-account-members';
@@ -64,23 +64,15 @@ export default function LoginPage() {
         </div>
 
         <Panel className="p-7">
-          <div className="mb-8 grid rounded-md border border-border bg-background/30 p-1">
-            <div className="grid grid-cols-2 gap-1">
-              {(['sign-in', 'create-account'] as AuthMode[]).map((nextMode) => (
-                <button
-                  key={nextMode}
-                  type="button"
-                  onClick={() => setMode(nextMode)}
-                  className={`h-10 rounded-sm text-sm font-semibold transition ${mode === nextMode
-                    ? 'bg-card text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                >
-                  {nextMode === 'sign-in' ? 'Sign in' : 'Create account'}
-                </button>
-              ))}
-            </div>
-          </div>
+          <SegmentedControl
+            value={mode}
+            onChange={setMode}
+            className="mb-8 grid-cols-2"
+            options={[
+              { value: 'sign-in', label: 'Sign in' },
+              { value: 'create-account', label: 'Create account' },
+            ]}
+          />
 
           {error && <Paragraph className="mb-4 text-destructive">{error}</Paragraph>}
 

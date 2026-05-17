@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import axios from 'axios';
+import { Paragraph } from './ui';
 
 interface ReceiptData {
     items: Array<{ name: string; price: number }>;
@@ -61,10 +62,10 @@ export function ReceiptUpload({ onReceiptParsed, isLoading = false }: ReceiptUpl
                         <span className="mb-4 grid h-12 w-12 place-items-center rounded-lg bg-accent text-2xl font-black text-primary">
                             ↑
                         </span>
-                        <p className="mb-2 text-sm font-bold text-muted-foreground">
+                        <Paragraph className="mb-2 text-sm font-bold">
                             <span className="font-extrabold text-foreground">Click to upload</span> or drag and drop
-                        </p>
-                        <p className="text-xs font-bold text-muted-foreground">PNG, JPG, GIF up to 10MB</p>
+                        </Paragraph>
+                        <Paragraph className="text-xs font-bold">PNG, JPG, GIF up to 10MB</Paragraph>
                     </div>
                     <input
                         type="file"
@@ -86,9 +87,9 @@ export function ReceiptUpload({ onReceiptParsed, isLoading = false }: ReceiptUpl
                         unoptimized
                         className="max-h-64 w-full rounded-lg object-cover"
                     />
-                    <p className="mt-2 text-xs font-bold text-muted-foreground">
+                    <Paragraph className="mt-2 text-xs font-bold">
                         {loading || isLoading ? 'Claude is analyzing your receipt...' : 'Receipt uploaded'}
-                    </p>
+                    </Paragraph>
                 </div>
             )}
 

@@ -48,7 +48,7 @@ const createFontStylesheet = (families: string[]) => {
     const href = `https://fonts.googleapis.com/css2?${encodedFamilies
         .map((family) => `family=${family}`)
         .join('&')}&display=swap`;
-console.log('Loading font stylesheet:', href);
+
     if (document.querySelector(`link[rel="stylesheet"][href="${href}"]`)) {
         return;
     }

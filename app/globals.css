@@ -72,6 +72,12 @@ button {
   white-space: nowrap;
 }
 
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
 .btn:hover {
   transform: translateY(-1px);
 }
@@ -110,6 +116,36 @@ button {
   color: var(--accent-foreground);
 }
 
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  border-radius: calc(var(--radius) - 0.35rem);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted-foreground);
+  transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.icon-button:hover {
+  transform: translateY(-1px);
+  border-color: var(--primary);
+  color: var(--foreground);
+}
+
+.icon-button-danger:hover {
+  border-color: color-mix(in oklch, var(--destructive) 55%, transparent);
+  background: color-mix(in oklch, var(--destructive) 12%, transparent);
+  color: var(--destructive);
+}
+
+.icon-button-ghost {
+  border-color: transparent;
+  background: transparent;
+}
+
 .heading-1,
 .heading-2,
 .heading-3 {
@@ -141,6 +177,31 @@ button {
   font-size: 1rem;
   font-weight: 500;
   line-height: 1.75;
+}
+
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.section-header-copy {
+  min-width: 0;
+}
+
+.section-header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.section-header-action {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .panel {
@@ -198,6 +259,191 @@ button {
 .input-field:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 0.2rem color-mix(in oklch, var(--primary) 20%, transparent 80%);
+}
+
+.badge {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--muted);
+  color: var(--muted-foreground);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.badge-accent {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.badge-danger {
+  border-color: color-mix(in oklch, var(--destructive) 45%, transparent);
+  background: color-mix(in oklch, var(--destructive) 12%, transparent);
+  color: var(--destructive);
+}
+
+.badge-icon {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.empty-state {
+  width: 100%;
+  max-width: 36rem;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.empty-state-icon {
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1.5rem;
+  border-radius: calc(var(--radius) + 0.1rem);
+  background: var(--accent);
+  color: var(--primary);
+  font-size: 1.5rem;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 0.35rem);
+  background: color-mix(in oklch, var(--background) 72%, transparent);
+  padding: 0.85rem;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.list-item:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklch, var(--primary) 45%, var(--border));
+}
+
+.list-item-leading,
+.list-item-trailing {
+  flex: 0 0 auto;
+}
+
+.list-item-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.list-item-title {
+  overflow: hidden;
+  color: var(--foreground);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list-item-description {
+  overflow: hidden;
+  margin-top: 0.2rem;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.segmented-control {
+  display: grid;
+  gap: 0.25rem;
+  border-radius: calc(var(--radius) - 0.25rem);
+  background: var(--accent);
+  padding: 0.25rem;
+}
+
+.segmented-control-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  border-radius: calc(var(--radius) - 0.55rem);
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  font-weight: 800;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.segmented-control-item:hover {
+  color: var(--foreground);
+}
+
+.segmented-control-item.is-active {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: var(--shadow-xs);
+}
+
+.bottom-nav {
+  position: fixed;
+  inset-inline: 1rem;
+  bottom: 1rem;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  border: 1px solid var(--sidebar-border);
+  border-radius: var(--radius);
+  background: var(--sidebar);
+  padding: 0.5rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.bottom-nav-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  border-radius: calc(var(--radius) - 0.35rem);
+  color: var(--sidebar-foreground);
+  font-size: 0.875rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.bottom-nav-link.is-active {
+  background: var(--sidebar-primary);
+  color: var(--sidebar-primary-foreground);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+.modal-panel {
+  position: relative;
+  width: min(42rem, calc(100vw - 2rem));
+  max-height: min(90vh, 58rem);
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
 }
 
 .loading-overlay {
@@ -273,6 +519,7 @@ button {
   position: sticky;
   top: 0;
   z-index: 40;
+  background: var(--sidebar);
   border-bottom: 1px solid var(--sidebar-border);
   color: var(--sidebar-foreground);
   backdrop-filter: blur(16px);
@@ -384,6 +631,41 @@ button {
 @media (min-width: 640px) {
   .account-email {
     display: block;
+  }
+}
+
+@media (min-width: 768px) {
+  .bottom-nav {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .app-shell-header-inner {
+    padding: 1rem;
+  }
+
+  .logo-title {
+    font-size: 1.15rem;
+  }
+
+  .section-header {
+    flex-direction: column;
+  }
+
+  .section-header-action,
+  .section-header-action .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .list-item {
+    align-items: flex-start;
+  }
+
+  .list-item-trailing {
+    align-self: center;
   }
 }
 

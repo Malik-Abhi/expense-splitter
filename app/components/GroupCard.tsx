@@ -3,8 +3,15 @@
 import Link from 'next/link';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRight, faTrash, faUsers } from '@fortawesome/free-solid-svg-icons';
-import { Group } from '@/store/appStore';
-import { Heading, Paragraph, Panel } from './ui';
+import { Badge, Heading, IconButton, Paragraph, Panel } from './ui';
+
+interface Group {
+    _id: string;
+    name: string;
+    description?: string;
+    members: Array<{ id: string; name: string }>;
+    createdAt: string;
+}
 
 interface GroupCardProps {
     group: Group;
@@ -24,18 +31,16 @@ export function GroupCard({ group, onDelete }: GroupCardProps) {
                     </div>
                     <div className="flex shrink-0 gap-2">
                         {onDelete && (
-                            <button
-                                type="button"
+                            <IconButton
+                                icon={faTrash}
+                                label={`Delete ${group.name}`}
+                                variant="danger"
                                 onClick={(event) => {
                                     event.preventDefault();
                                     event.stopPropagation();
                                     onDelete(group._id);
                                 }}
-                                className="grid h-10 w-10 place-items-center rounded-md border border-border bg-card text-muted-foreground transition hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
-                                aria-label={`Delete ${group.name}`}
-                            >
-                                <FontAwesomeIcon icon={faTrash} />
-                            </button>
+                            />
                         )}
                         <span className="grid h-10 w-10 place-items-center rounded-md bg-accent text-primary transition group-hover:translate-x-1">
                             <FontAwesomeIcon icon={faArrowRight} />
@@ -44,26 +49,23 @@ export function GroupCard({ group, onDelete }: GroupCardProps) {
                 </div>
 
                 <div>
-                    <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+                    <Paragraph className="flex items-center gap-2 text-xs font-semibold uppercase">
                         <FontAwesomeIcon icon={faUsers} />
                         Members
-                    </p>
+                    </Paragraph>
                     <div className="flex flex-wrap gap-2 mt-2">
                         {group.members.map((member) => (
-                            <span
-                                key={member.id}
-                                className="inline-flex rounded-full border border-border bg-muted px-3 py-1 text-xs font-extrabold text-muted-foreground"
-                            >
+                            <Badge key={member.id}>
                                 {member.name}
-                            </span>
+                            </Badge>
                         ))}
                     </div>
                 </div>
 
                 <div className="mt-5 border-t border-border pt-4">
-                    <p className="text-xs font-bold text-muted-foreground">
+                    <Paragraph className="text-xs font-bold">
                         Created: {new Date(group.createdAt).toLocaleDateString()}
-                    </p>
+                    </Paragraph>
                 </div>
             </Panel>
         </Link>

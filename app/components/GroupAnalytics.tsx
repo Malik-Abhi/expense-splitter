@@ -2,7 +2,7 @@
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChartSimple, faReceipt, faScaleBalanced, faUsers } from '@fortawesome/free-solid-svg-icons';
-import { Heading, Panel, Paragraph } from './ui';
+import { Heading, Panel, Paragraph, SectionHeader } from './ui';
 
 interface Expense {
     amount: number;
@@ -39,10 +39,7 @@ export function GroupAnalytics({ expenses, members }: GroupAnalyticsProps) {
 
     return (
         <Panel className="p-6">
-            <div className="mb-5 flex items-center justify-between">
-                <Heading level={2}>Dashboard</Heading>
-                <FontAwesomeIcon icon={faChartSimple} className="text-primary" />
-            </div>
+            <SectionHeader title="Dashboard" icon={faChartSimple} />
 
             <div className="grid gap-3 md:grid-cols-4">
                 {stats.map((stat) => (

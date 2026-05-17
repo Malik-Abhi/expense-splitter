@@ -1,6 +1,6 @@
 'use client';
 
-import { Heading, Paragraph, Panel } from './ui';
+import { Heading, ListItem, Paragraph, Panel } from './ui';
 
 interface Expense {
     _id: string;
@@ -36,28 +36,24 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
             ) : (
                 <div className="space-y-3">
                     {expenses.map((expense) => (
-                        <div
+                        <ListItem
                             key={expense._id}
-                            className="flex items-center justify-between gap-4 rounded-lg border border-border bg-background/25 p-4 transition hover:border-primary/60"
-                        >
-                            <div className="flex items-center gap-3">
+                            title={expense.description}
+                            description={`Paid by ${expense.paidBy.name}`}
+                            leading={
                                 <span className="grid h-11 w-11 place-items-center rounded-lg bg-accent text-sm font-black text-primary">
                                     {getCategoryInitial(expense.category)}
                                 </span>
-                                <div>
-                                    <p className="font-extrabold text-foreground">{expense.description}</p>
-                                    <p className="text-sm font-bold text-muted-foreground">
-                                        Paid by {expense.paidBy.name}
-                                    </p>
+                            }
+                            trailing={
+                                <div className="text-right">
+                                    <p className="font-mono text-lg font-black text-primary">${expense.amount.toFixed(2)}</p>
+                                    <Paragraph className="text-xs font-bold">
+                                        {new Date(expense.createdAt).toLocaleDateString()}
+                                    </Paragraph>
                                 </div>
-                            </div>
-                            <div className="text-right">
-                                <p className="font-mono text-lg font-black text-primary">${expense.amount.toFixed(2)}</p>
-                                <p className="text-xs font-bold text-muted-foreground">
-                                    {new Date(expense.createdAt).toLocaleDateString()}
-                                </p>
-                            </div>
-                        </div>
+                            }
+                        />
                     ))}
                 </div>
             )}
