@@ -113,7 +113,6 @@ button {
 .heading-1,
 .heading-2,
 .heading-3 {
-  margin: 0;
   color: var(--foreground);
   letter-spacing: -0.02em;
 }
@@ -148,8 +147,6 @@ button {
   position: relative;
   overflow: hidden;
   border-radius: 1.25rem;
-  background: linear-gradient(163deg, var(--primary), var(--accent));
-  padding: 0.2rem;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
@@ -166,16 +163,6 @@ button {
   color: var(--card-foreground);
   border-radius: 1.05rem;
   padding: 1.5rem;
-}
-
-.panel.reveal {
-  opacity: 0;
-  transform: translateY(24px) scale(0.98);
-}
-
-.panel.reveal-visible {
-  opacity: 1;
-  transform: translateY(0) scale(1);
 }
 
 .text-field {
@@ -287,14 +274,11 @@ button {
   top: 0;
   z-index: 40;
   border-bottom: 1px solid var(--sidebar-border);
-  background: rgba(255, 255, 255, 0.95);
   color: var(--sidebar-foreground);
   backdrop-filter: blur(16px);
+
 }
 
-.dark .app-shell-header {
-  background: rgba(0, 0, 0, 0.88);
-}
 
 .app-shell-header-inner {
   display: flex;

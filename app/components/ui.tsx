@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRightFromBracket, faMoon, faSun, faWallet } from '@fortawesome/free-solid-svg-icons';
@@ -75,39 +75,10 @@ interface PanelProps {
     className?: string;
 }
 
+// ✨ SIMPLIFIED: No more ref, useState, or useEffect!
 export function Panel({ children, className = '' }: PanelProps) {
-    const [visible, setVisible] = useState(false);
-    const ref = useRef<HTMLElement | null>(null);
-
-    useEffect(() => {
-        const element = ref.current;
-        if (!element) {
-            return;
-        }
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        setVisible(true);
-                        observer.unobserve(entry.target);
-                    }
-                });
-            },
-            {
-                threshold: 0.2,
-            }
-        );
-
-        observer.observe(element);
-        return () => observer.disconnect();
-    }, []);
-
     return (
-        <section
-            ref={ref}
-            className={`panel reveal ${visible ? 'reveal-visible' : ''}`}
-        >
+        <section className="panel">
             <div className={`panel-inner ${className}`}>
                 {children}
             </div>

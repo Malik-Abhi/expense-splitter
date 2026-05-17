@@ -249,9 +249,7 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
     };
 
     return (
-        <Panel className="p-6">
-            <Heading level={2} className="mb-5">Add expense</Heading>
-
+        <div className="p-6">
             <div className="mb-6 grid grid-cols-2 gap-1 rounded-lg bg-accent p-1">
                 <Button
                     type="button"
@@ -429,6 +427,6 @@ export function ExpenseForm({ groupId, members, onExpenseAdded }: ExpenseFormPro
                     {loading ? 'Adding...' : 'Add expense'}
                 </Button>
             </form>
-        </Panel>
+        </div>
     );
 }

@@ -17,7 +17,7 @@ import {
   faWallet,
 } from '@fortawesome/free-solid-svg-icons';
 import { GroupCard } from './components/GroupCard';
-import { AppShell, Button, Heading, LoadingOverlay, Logo, Panel, Paragraph, TextField } from './components/ui';
+import { AppShell, Button, Heading, LoadingOverlay, Panel, Paragraph, TextField } from './components/ui';
 
 interface Member {
   id: string;
@@ -373,124 +373,126 @@ export default function Home() {
         </div>
 
         <>
-            <div className="mb-6 flex justify-end">
-              <Button type="button" onClick={() => setShowForm((current) => !current)}>
-                <FontAwesomeIcon icon={faFolderPlus} />
-                New group
-              </Button>
-            </div>
+          <div className="mb-6 flex justify-end">
+            <Button type="button" onClick={() => setShowForm((current) => !current)}>
+              <FontAwesomeIcon icon={faFolderPlus} />
+              New group
+            </Button>
+          </div>
 
-            {showForm && (
-              <Panel className="mb-8 p-6">
-                <form onSubmit={handleCreateGroup} className="space-y-6">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <TextField
-                      label="Group name"
-                      type="text"
-                      value={newGroupName}
-                      onChange={(event) => setNewGroupName(event.target.value)}
-                      placeholder="Trip to Manali"
-                    />
-                    <TextField
-                      label="Description"
-                      type="text"
-                      value={newGroupDescription}
-                      onChange={(event) => setNewGroupDescription(event.target.value)}
-                      placeholder="Optional note"
-                    />
-                  </div>
-
-                  <div className="rounded-lg border border-border bg-background/25 p-4">
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <div>
-                        <Heading level={3}>Members</Heading>
-                        <Paragraph className="text-sm">Add members one at a time or pick from saved contacts.</Paragraph>
-                      </div>
-                      <span className="rounded-md bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground">
-                        {selectedMembers.length} selected
-                      </span>
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
-                      <TextField label="Name" value={memberName} onChange={(event) => setMemberName(event.target.value)} />
-                      <TextField label="Email" type="email" value={memberEmail} onChange={(event) => setMemberEmail(event.target.value)} />
-                      <Button type="button" variant="secondary" onClick={addMemberToDraft}>
-                        <FontAwesomeIcon icon={faUserPlus} />
-                        Add member
-                      </Button>
-                    </div>
-
-                    {contacts.length > 0 && (
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {contacts.map((contact) => (
-                          <button
-                            key={contact.id}
-                            type="button"
-                            onClick={() => addContactToDraft(contact)}
-                            className="rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium text-muted-foreground transition hover:-translate-y-0.5 hover:border-primary/50 hover:text-foreground"
-                          >
-                            <FontAwesomeIcon icon={faPlus} className="mr-2" />
-                            {contact.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {selectedMembers.length > 0 && (
-                      <div className="mt-5 grid gap-2 md:grid-cols-2">
-                        {selectedMembers.map((member) => (
-                          <div key={member.id} className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2">
-                            <div>
-                              <p className="font-semibold text-foreground">{member.name}</p>
-                              {member.email && <p className="text-xs text-muted-foreground">{member.email}</p>}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeDraftMember(member.id)}
-                              className="rounded-md px-2 py-1 text-muted-foreground transition hover:bg-destructive/15 hover:text-destructive"
-                              aria-label={`Remove ${member.name}`}
-                            >
-                              <FontAwesomeIcon icon={faTrash} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex justify-end">
-                    <Button type="submit">Create group</Button>
-                  </div>
-                </form>
-              </Panel>
-            )}
-
-            {loading ? (
-              <Panel className="grid min-h-80 place-items-center border-dashed p-10">
-                <Paragraph>Loading groups...</Paragraph>
-              </Panel>
-            ) : groups.length === 0 ? (
-              <Panel className="grid min-h-96 place-items-center border-dashed p-10 text-center">
-                <div className="mx-auto max-w-xl">
-                  <div className="mx-auto mb-7 grid h-16 w-16 place-items-center rounded-lg bg-accent text-primary">
-                    <FontAwesomeIcon icon={faUsers} className="h-7 w-7" />
-                  </div>
-                  <Heading level={2}>No groups yet</Heading>
-                  <Paragraph className="mt-3">Create one for a trip, apartment, project, or recurring dinner plan.</Paragraph>
-                  <Button type="button" onClick={() => setShowForm(true)} className="mt-8">
-                    <FontAwesomeIcon icon={faFolderPlus} />
-                    Create your first group
-                  </Button>
+          {showForm && (
+            <Panel className="p-6">
+              <form onSubmit={handleCreateGroup} className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <TextField
+                    label="Group name"
+                    type="text"
+                    value={newGroupName}
+                    onChange={(event) => setNewGroupName(event.target.value)}
+                    placeholder="Trip to Manali"
+                  />
+                  <TextField
+                    label="Description"
+                    type="text"
+                    value={newGroupDescription}
+                    onChange={(event) => setNewGroupDescription(event.target.value)}
+                    placeholder="Optional note"
+                  />
                 </div>
-              </Panel>
-            ) : (
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {groups.map((group) => (
-                  <GroupCard key={group._id} group={group} onDelete={handleDeleteGroup} />
-                ))}
-              </div>
-            )}
-          </>
+
+                <div className="rounded-lg border border-border bg-background/25 p-4">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <Heading level={3}>Members</Heading>
+                      <Paragraph className="text-sm">Add members one at a time or pick from saved contacts.</Paragraph>
+                    </div>
+                    <span className="rounded-md bg-accent px-3 py-1 text-sm font-semibold text-accent-foreground">
+                      {selectedMembers.length} selected
+                    </span>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
+                    <TextField label="Name" value={memberName} onChange={(event) => setMemberName(event.target.value)} />
+                    <TextField label="Email" type="email" value={memberEmail} onChange={(event) => setMemberEmail(event.target.value)} />
+                    <Button type="button" variant="secondary" onClick={addMemberToDraft}>
+                      <FontAwesomeIcon icon={faUserPlus} />
+                      Add member
+                    </Button>
+                  </div>
+
+                  {contacts.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {contacts.map((contact) => (
+                        <button
+                          key={contact.id}
+                          type="button"
+                          onClick={() => addContactToDraft(contact)}
+                          className="rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium text-muted-foreground transition hover:-translate-y-0.5 hover:border-primary/50 hover:text-foreground"
+                        >
+                          <FontAwesomeIcon icon={faPlus} className="mr-2" />
+                          {contact.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedMembers.length > 0 && (
+                    <div className="mt-5 grid gap-2 md:grid-cols-2">
+                      {selectedMembers.map((member) => (
+                        <div key={member.id} className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2">
+                          <div>
+                            <p className="font-semibold text-foreground">{member.name}</p>
+                            {member.email && <p className="text-xs text-muted-foreground">{member.email}</p>}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeDraftMember(member.id)}
+                            className="rounded-md px-2 py-1 text-muted-foreground transition hover:bg-destructive/15 hover:text-destructive"
+                            aria-label={`Remove ${member.name}`}
+                          >
+                            <FontAwesomeIcon icon={faTrash} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end">
+                  <Button type="submit">Create group</Button>
+                </div>
+              </form>
+            </Panel>
+          )}
+          {!showForm ?
+            <>
+              {loading ? (
+                <Panel className="grid min-h-80 place-items-center border-dashed p-10">
+                  <Paragraph>Loading groups...</Paragraph>
+                </Panel>
+              ) : groups.length === 0 ? (
+                <Panel className="grid min-h-96 place-items-center border-dashed p-10 text-center">
+                  <div className="mx-auto max-w-xl">
+                    <div className="mx-auto mb-7 grid h-16 w-16 place-items-center rounded-lg bg-accent text-primary">
+                      <FontAwesomeIcon icon={faUsers} className="h-7 w-7" />
+                    </div>
+                    <Heading level={2}>No groups yet</Heading>
+                    <Paragraph className="mt-3">Create one for a trip, apartment, project, or recurring dinner plan.</Paragraph>
+                    <Button type="button" onClick={() => setShowForm(true)} className="mt-8">
+                      <FontAwesomeIcon icon={faFolderPlus} />
+                      Create your first group
+                    </Button>
+                  </div>
+                </Panel>
+              ) : (
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  {groups.map((group) => (
+                    <GroupCard key={group._id} group={group} onDelete={handleDeleteGroup} />
+                  ))}
+                </div>
+              )}
+            </> : null}
+        </>
         <div className="fixed inset-x-4 bottom-4 z-20 grid grid-cols-2 gap-2 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-lg md:hidden">
           <Link href="/" className="h-11 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground text-sm font-semibold grid place-items-center">
             <FontAwesomeIcon icon={faLayerGroup} className="mr-2" />

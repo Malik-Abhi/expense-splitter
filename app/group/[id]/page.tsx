@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartLine, faReceipt, faTrash, faUserPlus, faUsers } from '@fortawesome/free-solid-svg-icons';
+import { faChartLine, faPlus, faReceipt, faTrash, faUserPlus, faUsers, faX } from '@fortawesome/free-solid-svg-icons';
 import { ExpenseForm } from '@/app/components/ExpenseForm';
 import { ExpenseList } from '@/app/components/ExpenseList';
 import { GroupAnalytics } from '@/app/components/GroupAnalytics';
@@ -47,6 +47,7 @@ export default function GroupPage() {
     const [activeTab, setActiveTab] = useState<'expenses' | 'settlements' | 'activity'>('expenses');
     const [memberName, setMemberName] = useState('');
     const [memberEmail, setMemberEmail] = useState('');
+    const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false); // ← NEW: Modal state
 
     const makeMemberId = () => `member-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -122,6 +123,12 @@ export default function GroupPage() {
         router.push('/');
     };
 
+    // ← NEW: Close modal and refresh data
+    const handleExpenseAdded = () => {
+        setIsExpenseFormOpen(false);
+        fetchGroupAndExpenses();
+    };
+
     if (loading) {
         return (
             <AppShell>
@@ -158,10 +165,17 @@ export default function GroupPage() {
                             <Heading>{group.name}</Heading>
                             {group.description && <Paragraph className="mt-2">{group.description}</Paragraph>}
                         </div>
-                        <Button type="button" variant="secondary" onClick={handleDeleteGroup} className="border-destructive/40 text-destructive hover:bg-destructive/10">
-                            <FontAwesomeIcon icon={faTrash} />
-                            Delete group
-                        </Button>
+                        <div className="flex gap-2">
+                            {/* ← NEW: Add Expense button */}
+                            <Button type="button" variant="primary" onClick={() => setIsExpenseFormOpen(true)}>
+                                <FontAwesomeIcon icon={faPlus} />
+                                Add Expense
+                            </Button>
+                            <Button type="button" variant="secondary" onClick={handleDeleteGroup} className="border-destructive/40 text-destructive hover:bg-destructive/10">
+                                <FontAwesomeIcon icon={faTrash} />
+                                Delete group
+                            </Button>
+                        </div>
                     </div>
                     <div className="mt-5 flex flex-wrap gap-2">
                         {group.members.map((member) => (
@@ -241,11 +255,6 @@ export default function GroupPage() {
                                 </Button>
                             </div>
                         </Panel>
-                        <ExpenseForm
-                            groupId={groupId}
-                            members={group.members}
-                            onExpenseAdded={fetchGroupAndExpenses}
-                        />
                     </div>
 
                     {/* Right: Expenses or Settlements */}
@@ -259,6 +268,28 @@ export default function GroupPage() {
                         )}
                     </div>
                 </div>
+
+                {/* ← NEW: Expense Form Modal */}
+                {isExpenseFormOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                        <Panel className="relative w-full p-6 max-h-[90vh] overflow-y-auto">
+                            <button
+                                type="button"
+                                onClick={() => setIsExpenseFormOpen(false)}
+                                className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground transition hover:bg-accent hover:text-foreground"
+                                aria-label="Close modal"
+                            >
+                                <FontAwesomeIcon icon={faX} />
+                            </button>
+                            <Heading level={2} className="mb-6">Add Expense</Heading>
+                            <ExpenseForm
+                                groupId={groupId}
+                                members={group.members}
+                                onExpenseAdded={handleExpenseAdded}
+                            />
+                        </Panel>
+                    </div>
+                )}
             </div>
         </AppShell>
     );
